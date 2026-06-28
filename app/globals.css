@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --paper:#EBE7DB; --ink:#14130F; --surface:#FFFFFF;
+  --muted:#6E6A5E; --faint:#8A857A;
+  --violet:#6C5CE7; --lime:#BEE63B; --coral:#FF5B43;
+  --sky:#2E8BFF; --teal:#14B8A6; --gold:#FFC93C;
+  --sh-sm:3px 3px 0 0 var(--ink);
+  --sh-md:4px 4px 0 0 var(--ink);
+  --sh-lg:6px 6px 0 0 var(--ink);
+  --radius:3px;
+  --font-head:var(--font-archivo-black),'Archivo Black',sans-serif;
+  --font-sans:var(--font-space-grotesk),'Space Grotesk',sans-serif;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-violet: var(--violet);
+  --color-lime: var(--lime);
+  --color-coral: var(--coral);
+  --color-sky: var(--sky);
+  --color-teal: var(--teal);
+  --color-gold: var(--gold);
+  --font-head: var(--font-head);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* Tile interactivo: levantar en hover, hundir en active */
+.tile {
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+.tile:hover {
+  box-shadow: var(--sh-md) !important;
+  transform: translate(-1px, -1px);
+}
+.tile:active {
+  box-shadow: 0 0 0 0 var(--ink) !important;
+  transform: translate(2px, 2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    transition: none;
+  }
+}
+
+/* Layout grid: mobile 1 col (centro primero), desktop 3 cols */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .layout-grid {
+    grid-template-columns: 140px 1fr 150px;
+  }
+  .col-left   { order: 1; }
+  .col-center { order: 2; }
+  .col-right  { order: 3; }
+}
+
+/* Focus visible en elementos interactivos */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Badges de categoría: hover sutil */
+.badge {
+  transition: background 0.08s ease, color 0.08s ease;
+}
+.badge:hover {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+}
+.badge:active {
+  transform: translate(1px, 1px);
+}
+
+/* News links */
+.news-link {
+  transition: opacity 0.08s ease;
+}
+.news-link:hover {
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .badge,
+  .news-link {
+    transition: none;
+  }
+  .badge:active,
+  .tile:hover,
+  .tile:active {
+    transform: none;
+  }
+}
