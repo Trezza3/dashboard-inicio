@@ -305,7 +305,10 @@ export default function Shortcuts() {
     <section aria-label="Accesos directos" className="flex flex-col gap-3">
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))" }}
+        style={{
+          gridTemplateColumns: "repeat(auto-fill, 56px)",
+          maxWidth: "calc(12 * 56px + 11 * 8px)", /* 760px — max 12 por fila */
+        }}
       >
         {list.map((s, i) => (
           <ShortcutTile

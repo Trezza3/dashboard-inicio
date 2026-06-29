@@ -36,24 +36,24 @@ export default function News() {
         border: "2px solid var(--ink)",
         borderRadius: "var(--radius)",
         boxShadow: "var(--sh-sm)",
+        /* altura máxima = viewport menos el header sticky (~90px) */
+        maxHeight: "calc(100vh - 90px)",
+        overflow: "hidden",
       }}
     >
-      {/* Eyebrow */}
-      <div className="flex items-center gap-1.5">
+      {/* Eyebrow — fijo, no scrollea */}
+      <div className="flex items-center gap-1.5 shrink-0">
         <span
           className="text-[10px] uppercase"
           style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}
         >
           Noticias
         </span>
-        <span
-          className="inline-block h-2 w-2 rounded-full"
-          style={{ background: "var(--coral)" }}
-        />
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--coral)" }} />
       </div>
 
-      {/* Badges de categoría */}
-      <nav aria-label="Filtro de categorías" className="flex flex-wrap gap-1.5">
+      {/* Badges — fijos */}
+      <nav aria-label="Filtro de categorías" className="flex flex-wrap gap-1.5 shrink-0">
         <button
           type="button"
           onClick={() => setActive(null)}
@@ -87,23 +87,17 @@ export default function News() {
         ))}
       </nav>
 
-      {/* Lista */}
+      {/* Lista — scrollea */}
       {loading ? (
-        <p className="text-xs" style={{ color: "var(--muted)" }}>
-          Cargando…
-        </p>
+        <p className="text-xs" style={{ color: "var(--muted)" }}>Cargando…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-xs" style={{ color: "var(--muted)" }}>
-          Sin resultados.
-        </p>
+        <p className="text-xs" style={{ color: "var(--muted)" }}>Sin resultados.</p>
       ) : (
-        <ul className="flex flex-col">
-          {filtered.slice(0, 30).map((item, i) => (
+        <ul className="news-scroll flex flex-col flex-1 overflow-y-auto min-h-0">
+          {filtered.slice(0, 40).map((item, i) => (
             <li
               key={`${item.link}-${i}`}
-              style={{
-                borderTop: i > 0 ? "1.5px solid var(--ink)" : "none",
-              }}
+              style={{ borderTop: i > 0 ? "1.5px solid var(--ink)" : "none" }}
             >
               <a
                 href={item.link}
@@ -111,9 +105,7 @@ export default function News() {
                 rel="noopener noreferrer"
                 className="news-link flex flex-col gap-0.5 py-2 text-xs"
               >
-                <span style={{ color: "var(--ink)", lineHeight: 1.35 }}>
-                  {item.title}
-                </span>
+                <span style={{ color: "var(--ink)", lineHeight: 1.35 }}>{item.title}</span>
                 <span
                   className="text-[9px] uppercase"
                   style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}

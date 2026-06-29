@@ -65,12 +65,28 @@ export default function Notes() {
         boxShadow: "var(--sh-sm)",
       }}
     >
-      <p
-        className="mb-2 text-[10px] uppercase"
-        style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}
-      >
-        Notas
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p
+          className="text-[10px] uppercase"
+          style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}
+        >
+          Notas
+        </p>
+        {notes.length > 0 && (
+          <span
+            className="text-[9px] px-1.5 py-0.5 tabular-nums"
+            style={{
+              fontFamily: "var(--font-head)",
+              background: notes.every((n) => n.done) ? "var(--lime)" : "var(--ink)",
+              color:      notes.every((n) => n.done) ? "var(--ink)"  : "var(--paper)",
+              border: "1.5px solid var(--ink)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            {notes.filter((n) => n.done).length}/{notes.length}
+          </span>
+        )}
+      </div>
 
       <ul className="flex flex-col gap-1.5">
         {notes.map((n) => (
