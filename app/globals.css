@@ -35,7 +35,7 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Tile interactivo: levantar en hover, hundir en active */
+/* Tile interactivo: levantar en hover */
 .tile {
   transition: box-shadow 0.08s ease, transform 0.08s ease;
 }
@@ -43,10 +43,7 @@ body {
   box-shadow: var(--sh-md) !important;
   transform: translate(-1px, -1px);
 }
-.tile:active {
-  box-shadow: 0 0 0 0 var(--ink) !important;
-  transform: translate(2px, 2px);
-}
+/* Sin active CSS en links — evita repaint antes de navegar */
 
 @media (prefers-reduced-motion: reduce) {
   .tile {
