@@ -28,14 +28,8 @@ export default function Home() {
 
           {/* Centro — protagonista */}
           <section
-            className="col-center order-1 p-[14px] self-start"
+            className="col-center order-1 self-start"
             aria-labelledby="shortcuts-heading"
-            style={{
-              background: "var(--surface)",
-              border: "2px solid var(--ink)",
-              borderRadius: "var(--radius)",
-              boxShadow: "var(--sh-sm)",
-            }}
           >
             <h2 id="shortcuts-heading" className="sr-only">
               Accesos directos
