@@ -223,7 +223,7 @@ function ShortcutTile({
         rel="noopener noreferrer"
         className="tile flex items-center justify-center overflow-hidden"
         style={{
-          width: 48, height: 48,
+          width: 60, height: 60,
           background: "var(--surface)",
           border: "2px solid var(--ink)",
           borderRadius: "var(--radius)",
@@ -234,8 +234,8 @@ function ShortcutTile({
           <Image
             src={favicon}
             alt={s.name}
-            width={28}
-            height={28}
+            width={34}
+            height={34}
             onError={() => setImgOk(false)}
             unoptimized
           />
@@ -252,7 +252,7 @@ function ShortcutTile({
       </a>
 
       <span
-        className="text-[9px] font-bold text-center leading-tight max-w-[56px] truncate"
+        className="text-[9px] font-bold text-center leading-tight max-w-[68px] truncate"
         style={{ fontFamily: "var(--font-head)", color: "var(--ink)" }}
       >
         {s.name}
@@ -306,8 +306,8 @@ export default function Shortcuts() {
       <div
         className="grid gap-2"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, 56px)",
-          maxWidth: "calc(12 * 56px + 11 * 8px)", /* 760px — max 12 por fila */
+          gridTemplateColumns: "repeat(auto-fill, 68px)",
+          maxWidth: "calc(12 * 68px + 11 * 8px)", /* 904px — max 12 por fila */
         }}
       >
         {list.map((s, i) => (
@@ -327,7 +327,7 @@ export default function Shortcuts() {
             onClick={() => { setAdding((v) => !v); setEditing(null); }}
             className="tile flex items-center justify-center"
             style={{
-              width: 48, height: 48,
+              width: 60, height: 60,
               background: adding ? "var(--ink)" : "transparent",
               border: "2px dashed var(--ink)",
               borderRadius: "var(--radius)",
