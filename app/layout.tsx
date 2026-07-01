@@ -27,8 +27,17 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`${archivoBlack.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
+      <head>
+        {/* Aplica el tema guardado antes del primer paint — evita el flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('dash-theme');if(t==='dark'||(t===null&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full" style={{ fontFamily: "var(--font-sans)" }}>
         {children}
       </body>

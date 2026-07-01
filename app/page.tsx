@@ -2,6 +2,9 @@ import Header from "@/components/Header";
 import Shortcuts from "@/components/Shortcuts";
 import Notes from "@/components/Notes";
 import News from "@/components/News";
+import Agenda from "@/components/Agenda";
+import FocusMode from "@/components/FocusMode";
+import Projects from "@/components/Projects";
 import Dolar from "@/components/widgets/Dolar";
 
 export default function Home() {
@@ -22,32 +25,37 @@ export default function Home() {
             className="col-left flex flex-col gap-[14px] order-2 md:sticky md:top-[90px] md:self-start"
             aria-label="Widgets"
           >
+            <Agenda />
             <Notes />
             <Dolar />
           </aside>
 
           {/* Centro — protagonista */}
-          <section
-            className="col-center order-1 self-start mx-auto p-[14px]"
-            aria-labelledby="shortcuts-heading"
-            style={{
-              width: "fit-content",
-              background: "var(--surface)",
-              border: "2px solid var(--ink)",
-              borderRadius: "var(--radius)",
-              boxShadow: "var(--sh-sm)",
-            }}
-          >
-            <h2 id="shortcuts-heading" className="sr-only">
-              Accesos directos
-            </h2>
-            <Shortcuts />
-          </section>
+          <div className="col-center order-1 flex flex-col gap-[14px] self-start mx-auto">
+            <section
+              className="p-[14px]"
+              aria-labelledby="shortcuts-heading"
+              style={{
+                width: "100%",
+                background: "var(--surface)",
+                border: "2px solid var(--ink)",
+                borderRadius: "var(--radius)",
+                boxShadow: "var(--sh-sm)",
+              }}
+            >
+              <h2 id="shortcuts-heading" className="sr-only">
+                Accesos directos
+              </h2>
+              <Shortcuts />
+            </section>
+            <FocusMode />
+          </div>
 
           {/* Derecha sticky */}
           <aside
-            className="col-right order-3 md:sticky md:top-[90px] md:self-start"
+            className="col-right order-3 flex flex-col gap-[14px] md:sticky md:top-[90px] md:self-start"
           >
+            <Projects />
             <News />
           </aside>
         </div>

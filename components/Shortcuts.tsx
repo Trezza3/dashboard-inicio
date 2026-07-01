@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { IconPlus, IconX, IconPencil, IconCheck } from "@tabler/icons-react";
-import { shortcuts as defaultShortcuts, type Shortcut } from "@/lib/shortcuts";
+import {
+  shortcuts as defaultShortcuts,
+  type Shortcut,
+} from "@/lib/shortcuts";
 
 const CHIP_OPTIONS = [
   { label: "ink",    value: "var(--ink)"    },
@@ -30,8 +33,6 @@ function normalizeUrl(raw: string) {
   const s = raw.trim();
   return /^https?:\/\//i.test(s) ? s : "https://" + s;
 }
-
-// ── Formulario reutilizable (agregar y editar) ──────────────────────────────
 
 type FormState = { name: string; url: string; chip: string };
 
@@ -92,6 +93,7 @@ function ShortcutForm({
             borderRadius: "var(--radius)",
             fontFamily: "var(--font-sans)",
             background: "var(--surface)",
+            color: "var(--ink)",
           }}
         />
         <input
@@ -105,6 +107,7 @@ function ShortcutForm({
             borderRadius: "var(--radius)",
             fontFamily: "var(--font-sans)",
             background: "var(--surface)",
+            color: "var(--ink)",
           }}
         />
       </div>
@@ -172,22 +175,40 @@ function ShortcutForm({
   );
 }
 
-// ── Tile individual ─────────────────────────────────────────────────────────
-
 function ShortcutTile({
   s,
+  dragging,
+  over,
   onEdit,
   onRemove,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDrop,
 }: {
   s: Shortcut;
+  dragging: boolean;
+  over: boolean;
   onEdit: () => void;
   onRemove: () => void;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragEnd: () => void;
+  onDrop: () => void;
 }) {
   const favicon = faviconUrl(s.url);
   const [imgOk, setImgOk] = useState(!!favicon);
 
   return (
-    <div className="relative group/item flex flex-col items-center gap-1">
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStart(); }}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={onDragEnd}
+      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+      className={`sc-grabbable relative group/item flex flex-col items-center gap-1${dragging ? " sc-drag" : ""}${over ? " sc-over" : ""}`}
+    >
       {/* Botones hover */}
       <div className="absolute -top-1 -right-1 hidden group-hover/item:flex gap-0.5 z-10">
         <button
@@ -221,6 +242,7 @@ function ShortcutTile({
         title={s.name}
         target="_blank"
         rel="noopener noreferrer"
+        draggable={false}
         className="tile flex items-center justify-center overflow-hidden"
         style={{
           width: 60, height: 60,
@@ -236,6 +258,7 @@ function ShortcutTile({
             alt={s.name}
             width={34}
             height={34}
+            draggable={false}
             onError={() => setImgOk(false)}
             unoptimized
           />
@@ -261,26 +284,28 @@ function ShortcutTile({
   );
 }
 
-// ── Componente principal ────────────────────────────────────────────────────
-
 export default function Shortcuts() {
-  const [list, setList] = useState<Shortcut[]>([]);
+  const [list, setList] = useState<Shortcut[]>(defaultShortcuts);
   const [loaded, setLoaded] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
-  // Carga inicial: localStorage o defaults
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      setList(raw ? JSON.parse(raw) : defaultShortcuts);
-    } catch {
-      setList(defaultShortcuts);
-    }
-    setLoaded(true);
+    const loadShortcuts = window.setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) setList(JSON.parse(raw));
+      } catch {
+        setList(defaultShortcuts);
+      }
+      setLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(loadShortcuts);
   }, []);
 
-  // Persistir cualquier cambio
   useEffect(() => {
     if (!loaded) return;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch { /* ignore */ }
@@ -292,7 +317,7 @@ export default function Shortcuts() {
   }
 
   function save(index: number, f: FormState) {
-    setList((prev) => prev.map((s, i) => i === index ? { name: f.name, url: f.url, chip: f.chip } : s));
+    setList((prev) => prev.map((s, i) => i === index ? { ...s, name: f.name, url: f.url, chip: f.chip } : s));
     setEditing(null);
   }
 
@@ -301,21 +326,40 @@ export default function Shortcuts() {
     if (editing === index) setEditing(null);
   }
 
+  function reorder(from: number, to: number) {
+    setDragIndex(null);
+    setOverIndex(null);
+    if (from === to) return;
+    setList((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+    setEditing(null);
+  }
+
   return (
     <section aria-label="Accesos directos" className="flex flex-col gap-3">
       <div
-        className="grid gap-2"
+        className="grid justify-center gap-2"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, 68px)",
-          maxWidth: "calc(12 * 68px + 11 * 8px)", /* 904px — max 12 por fila */
+          gridTemplateColumns: "repeat(auto-fit, 68px)",
+          maxWidth: "100%",
         }}
       >
         {list.map((s, i) => (
           <ShortcutTile
             key={`${s.url}-${i}`}
             s={s}
-            onEdit={() => setEditing(editing === i ? null : i)}
+            dragging={dragIndex === i}
+            over={overIndex === i && dragIndex !== i}
+            onEdit={() => { setEditing(editing === i ? null : i); setAdding(false); }}
             onRemove={() => remove(i)}
+            onDragStart={() => setDragIndex(i)}
+            onDragEnter={() => { if (dragIndex !== null) setOverIndex(i); }}
+            onDragEnd={() => { setDragIndex(null); setOverIndex(null); }}
+            onDrop={() => { if (dragIndex !== null) reorder(dragIndex, i); }}
           />
         ))}
 
@@ -352,7 +396,11 @@ export default function Shortcuts() {
         <ShortcutForm
           key={`edit-${editing}`}
           title={`Editar — ${list[editing].name}`}
-          initial={{ name: list[editing].name, url: list[editing].url, chip: list[editing].chip }}
+          initial={{
+            name: list[editing].name,
+            url: list[editing].url,
+            chip: list[editing].chip,
+          }}
           onSave={(f) => save(editing, f)}
           onCancel={() => setEditing(null)}
         />

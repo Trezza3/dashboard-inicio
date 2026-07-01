@@ -13,6 +13,20 @@
   --font-sans:var(--font-space-grotesk),'Space Grotesk',sans-serif;
 }
 
+/* Modo oscuro: solo invierto papel/tinta/superficie — sombras y acentos
+   ya referencian var(--ink) así que se adaptan solos. */
+:root[data-theme="dark"] {
+  --paper:#17160F; --ink:#ECE8DC; --surface:#242219;
+  --muted:#9C9686; --faint:#7E786C;
+}
+
+body {
+  transition: background 0.2s ease, color 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-ink: var(--ink);
@@ -61,11 +75,32 @@ body {
 
 @media (min-width: 768px) {
   .layout-grid {
-    grid-template-columns: 140px 1fr 150px;
+    grid-template-columns:
+      minmax(176px, 220px)
+      minmax(340px, 1fr)
+      minmax(220px, 280px);
+    justify-content: center;
   }
   .col-left   { order: 1; }
-  .col-center { order: 2; }
+  .col-center {
+    order: 2;
+    max-width: 720px;
+    width: 100%;
+  }
   .col-right  { order: 3; }
+  .col-left,
+  .col-right {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1180px) {
+  .layout-grid {
+    grid-template-columns:
+      minmax(220px, 280px)
+      minmax(420px, 720px)
+      minmax(280px, 340px);
+  }
 }
 
 /* Focus visible en elementos interactivos */
@@ -107,6 +142,20 @@ input:focus-visible {
   .tile:active {
     transform: none;
   }
+}
+
+/* Drag & drop de shortcuts */
+.sc-drag {
+  opacity: 0.4;
+}
+.sc-over a {
+  box-shadow: 0 0 0 2px var(--sky) inset, var(--sh-sm) !important;
+}
+.sc-grabbable {
+  cursor: grab;
+}
+.sc-grabbable:active {
+  cursor: grabbing;
 }
 
 /* Scrollbar fino neobrutalist para el panel de noticias */

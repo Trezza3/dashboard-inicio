@@ -37,7 +37,7 @@ export default function News() {
         borderRadius: "var(--radius)",
         boxShadow: "var(--sh-sm)",
         /* altura máxima = viewport menos el header sticky (~90px) */
-        maxHeight: "calc(100vh - 90px)",
+        maxHeight: "min(520px, calc(100vh - 360px))",
         overflow: "hidden",
       }}
     >
