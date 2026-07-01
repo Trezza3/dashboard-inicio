@@ -85,7 +85,7 @@ export default function FocusMode() {
           className="tile flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[10px] uppercase"
           style={{
             background: "var(--lime)",
-            color: "var(--ink)",
+            color: "#14130F",
             border: "2px solid var(--ink)",
             borderRadius: "var(--radius)",
             boxShadow: "var(--sh-sm)",

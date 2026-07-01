@@ -152,7 +152,7 @@ export default function Notes() {
               style={{
                 fontFamily: "var(--font-head)",
                 background: doneCount === notes.length ? "var(--lime)" : "var(--ink)",
-                color: doneCount === notes.length ? "var(--ink)" : "var(--paper)",
+                color: doneCount === notes.length ? "#14130F" : "var(--paper)",
                 border: "1.5px solid var(--ink)",
                 borderRadius: "var(--radius)",
               }}

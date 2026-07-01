@@ -6,7 +6,7 @@ type Rate = { casa: string; venta: number };
 
 const ITEMS = [
   { casa: "blue",    label: "BLUE", bg: "var(--sky)",    color: "#fff"       },
-  { casa: "oficial", label: "OF.",  bg: "var(--lime)",   color: "var(--ink)" },
+  { casa: "oficial", label: "OF.",  bg: "var(--lime)",   color: "#14130F"    },
   { casa: "mep",     label: "MEP",  bg: "var(--violet)", color: "#fff"       },
 ];
 

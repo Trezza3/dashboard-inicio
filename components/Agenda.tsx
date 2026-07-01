@@ -97,6 +97,7 @@ export default function Agenda() {
           style={{
             fontFamily: "var(--font-head)",
             background: pending > 0 ? "var(--gold)" : "var(--lime)",
+            color: "#14130F",
             border: "1.5px solid var(--ink)",
             borderRadius: "var(--radius)",
           }}
@@ -120,7 +121,7 @@ export default function Agenda() {
                   background: item.done ? "transparent" : "var(--lime)",
                   border: "1.5px solid var(--ink)",
                   borderRadius: "var(--radius)",
-                  color: item.done ? "var(--faint)" : "var(--ink)",
+                  color: item.done ? "var(--faint)" : "#14130F",
                 }}
               >
                 {item.time}

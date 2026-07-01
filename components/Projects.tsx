@@ -76,7 +76,7 @@ export default function Projects() {
                   background: STATUS_BG[project.status],
                   border: "1.5px solid var(--ink)",
                   borderRadius: "var(--radius)",
-                  color: project.status === "pending" ? "var(--paper)" : "var(--ink)",
+                  color: project.status === "pending" ? "#fff" : "#14130F",
                 }}
               >
                 {STATUS_LABEL[project.status]}
