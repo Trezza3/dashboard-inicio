@@ -21,3 +21,9 @@ export const shortcuts: Shortcut[] = [
   { name: "Steam",     url: "https://store.steampowered.com",    chip: "var(--violet)", category: "Ocio" },
   { name: "YouTube",   url: "https://youtube.com",               chip: "var(--coral)",  category: "Ocio" },
 ];
+
+/* --- Items de la grilla: pueden ser un link o una carpeta con links dentro --- */
+export type Link = { name: string; url: string; chip: string };
+export type LinkItem = { kind: "link" } & Link;
+export type FolderItem = { kind: "folder"; id: string; name: string; items: Link[] };
+export type GridItem = LinkItem | FolderItem;
