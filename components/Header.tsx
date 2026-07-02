@@ -169,7 +169,7 @@ export default function Header() {
           color: "var(--paper)",
           border: "2px solid var(--ink)",
           borderRadius: "var(--radius)",
-          boxShadow: "3px 3px 0 0 var(--violet)",
+          boxShadow: "3px 3px 0 0 var(--accent2)",
           fontFamily: "var(--font-head)",
         }}
       >

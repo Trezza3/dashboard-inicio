@@ -5,6 +5,7 @@
   --muted:#6E6A5E; --faint:#8A857A;
   --violet:#6C5CE7; --lime:#BEE63B; --coral:#FF5B43;
   --sky:#2E8BFF; --teal:#14B8A6; --gold:#FFC93C;
+  --accent2:#6C5CE7;
   --sh-sm:3px 3px 0 0 var(--ink);
   --sh-md:4px 4px 0 0 var(--ink);
   --sh-lg:6px 6px 0 0 var(--ink);
@@ -26,7 +27,10 @@
   --paper:#1A0E14; --ink:#E68AAE; --surface:#271520;
   --muted:#B57C93; --faint:#8E6076;
   --violet:#B45CA6; --lime:#FF8FBE; --coral:#D14E7A;
-  --sky:#C25C99; --teal:#C77EA8; --gold:#F5B8D0;
+  --sky:#C25C99; --teal:#A98BEB; --gold:#A98BEB;
+  /* lila como secundario: cae en badges "Revisar", contador de agenda,
+     sombras de carpetas y el saludo — corta la monotonía rosa */
+  --accent2:#A98BEB;
 }
 
 body {
