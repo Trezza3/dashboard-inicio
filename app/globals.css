@@ -27,10 +27,10 @@
   --paper:#1A0E14; --ink:#E68AAE; --surface:#271520;
   --muted:#B57C93; --faint:#8E6076;
   --violet:#B45CA6; --lime:#FF8FBE; --coral:#D14E7A;
-  --sky:#C25C99; --teal:#A98BEB; --gold:#A98BEB;
-  /* lila como secundario: cae en badges "Revisar", contador de agenda,
-     sombras de carpetas y el saludo — corta la monotonía rosa */
-  --accent2:#A98BEB;
+  --sky:#C25C99; --teal:#45D6C0; --gold:#45D6C0;
+  /* menta como secundario (complementario del rosa): cae en badges
+     "Revisar", contador de agenda, sombras de carpetas y el saludo */
+  --accent2:#45D6C0;
 }
 
 body {
