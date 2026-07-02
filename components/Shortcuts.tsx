@@ -301,7 +301,7 @@ function LinkTile({
         className="tile flex items-center justify-center overflow-hidden"
         style={{
           width: 60, height: 60,
-          background: "var(--surface)",
+          background: "#fff",
           border: "2px solid var(--ink)",
           borderRadius: "var(--radius)",
           boxShadow: highlight === "reorder"
@@ -381,7 +381,7 @@ function FolderTile({
               <div
                 key={`${l.url}-${i}`}
                 className="flex items-center justify-center overflow-hidden"
-                style={{ background: "var(--surface)", border: "1px solid var(--ink)", borderRadius: 2 }}
+                style={{ background: "#fff", border: "1px solid var(--ink)", borderRadius: 2 }}
               >
                 <LinkGlyph link={l} size={16} />
               </div>
