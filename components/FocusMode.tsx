@@ -58,7 +58,7 @@ export default function FocusMode() {
         </p>
         <span
           className="text-[10px] tabular-nums"
-          style={{ fontFamily: "var(--font-head)", color: "var(--lime)" }}
+          style={{ fontFamily: "var(--font-head)", color: "var(--paper)" }}
         >
           {formatTime(seconds)}
         </span>

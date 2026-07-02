@@ -8,6 +8,7 @@ import {
   IconSnowflake,
   IconBolt,
   IconMoon,
+  IconHeartFilled,
 } from "@tabler/icons-react";
 
 function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }) {
@@ -65,23 +66,40 @@ function dayLabel(iso: string, index: number) {
     .toUpperCase();
 }
 
+type Theme = "light" | "dark" | "rose";
+
 function useTheme() {
-  const [dark, setDark] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
+  const [pulse, setPulse] = useState(0);
+
   useEffect(() => {
     const id = window.setTimeout(() => {
-      setDark(document.documentElement.getAttribute("data-theme") === "dark");
+      const t = document.documentElement.getAttribute("data-theme");
+      setTheme(t === "dark" || t === "rose" ? t : "light");
     }, 0);
     return () => window.clearTimeout(id);
   }, []);
-  function toggle() {
-    setDark((prev) => {
-      const next = !prev;
-      document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
-      try { localStorage.setItem("dash-theme", next ? "dark" : "light"); } catch { /* ignore */ }
-      return next;
-    });
+
+  function apply(next: Theme) {
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("dash-theme", next); } catch { /* ignore */ }
+    setTheme(next);
   }
-  return { dark, toggle };
+
+  // Sol/luna: alterna claro/oscuro (y sale de rosa si estaba activo)
+  function toggleDark() { apply(theme === "dark" ? "light" : "dark"); }
+
+  // Corazón de Lola: entra/sale del modo rosa con destello
+  function toggleRose() {
+    if (theme === "rose") {
+      apply("light");
+    } else {
+      apply("rose");
+      setPulse((p) => p + 1);
+    }
+  }
+
+  return { theme, toggleDark, toggleRose, pulse };
 }
 
 type Weather = { temp: number; feels: number; humidity: number; code: number };
@@ -89,7 +107,7 @@ type ForecastDay = { label: string; code: number; max: number; min: number };
 
 export default function Header() {
   const now = useClock();
-  const { dark, toggle } = useTheme();
+  const { theme, toggleDark, toggleRose, pulse } = useTheme();
   const [wx, setWx] = useState<Weather | null>(null);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [openWx, setOpenWx] = useState(false);
@@ -140,6 +158,9 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between gap-[14px]">
+      {/* Destello rosa al activar el modo de Lola */}
+      {pulse > 0 && <div key={pulse} className="rose-pulse" aria-hidden="true" />}
+
       {/* Fecha + saludo dinámico */}
       <div
         className="px-4 py-3"
@@ -159,11 +180,41 @@ export default function Header() {
 
       {/* Toggle tema + clima + reloj */}
       <div className="flex items-center gap-[14px]">
+        {/* Botón de Lola — corazón con inicial, late en hover */}
+        <button
+          type="button"
+          onClick={toggleRose}
+          aria-label={theme === "rose" ? "Salir del modo rosa" : "Activar el modo rosa de Lola"}
+          aria-pressed={theme === "rose"}
+          className="heart-btn tile relative flex items-center justify-center"
+          style={{
+            width: 42, height: 42,
+            background: theme === "rose" ? "var(--ink)" : "var(--surface)",
+            border: "2px solid var(--ink)",
+            borderRadius: "var(--radius)",
+            boxShadow: "var(--sh-sm)",
+          }}
+        >
+          <span className="heart-ico relative flex items-center justify-center">
+            <IconHeartFilled size={26} color={theme === "rose" ? "var(--paper)" : "#E8578F"} />
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[10px] font-bold"
+              style={{
+                fontFamily: "var(--font-head)",
+                color: theme === "rose" ? "#E8578F" : "var(--paper)",
+                paddingBottom: 1,
+              }}
+            >
+              L
+            </span>
+          </span>
+        </button>
+
         {/* Modo claro/oscuro */}
         <button
           type="button"
-          onClick={toggle}
-          aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          onClick={toggleDark}
+          aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
           className="tile flex items-center justify-center"
           style={{
             width: 42, height: 42,
@@ -173,7 +224,7 @@ export default function Header() {
             boxShadow: "var(--sh-sm)",
           }}
         >
-          {dark
+          {theme === "dark"
             ? <IconSun size={18} stroke={2} color="var(--gold)" />
             : <IconMoon size={18} stroke={2} color="var(--ink)" />
           }

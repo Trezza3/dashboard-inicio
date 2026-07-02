@@ -20,6 +20,15 @@
   --muted:#9C9686; --faint:#7E786C;
 }
 
+/* Modo rosa (Lola) — negro-vino + rosa empolvado. Los acentos se remapean
+   a la familia rosa para que todo el dashboard quede monocromático. */
+:root[data-theme="rose"] {
+  --paper:#1A0E14; --ink:#E68AAE; --surface:#271520;
+  --muted:#B57C93; --faint:#8E6076;
+  --violet:#B45CA6; --lime:#FF8FBE; --coral:#D14E7A;
+  --sky:#C25C99; --teal:#C77EA8; --gold:#F5B8D0;
+}
+
 body {
   transition: background 0.2s ease, color 0.2s ease;
 }
@@ -162,3 +171,33 @@ input:focus-visible {
 .news-scroll::-webkit-scrollbar       { width: 3px; }
 .news-scroll::-webkit-scrollbar-track { background: transparent; }
 .news-scroll::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 2px; }
+
+/* Botón de Lola: el corazón late al pasar el mouse */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  20%      { transform: scale(1.18); }
+  35%      { transform: scale(1.02); }
+  55%      { transform: scale(1.22); }
+}
+.heart-ico { transition: transform 0.12s ease; }
+.heart-btn:hover .heart-ico { animation: heartbeat 0.9s ease-in-out infinite; }
+
+/* Glow / pulso rosa al activar el tema */
+@keyframes rose-pulse {
+  0%   { opacity: 0; }
+  25%  { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+.rose-pulse {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(230,138,174,0.55), rgba(230,138,174,0) 68%);
+  animation: rose-pulse 0.75s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-btn:hover .heart-ico { animation: none; }
+  .rose-pulse { animation: none; opacity: 0; }
+}

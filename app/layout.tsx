@@ -34,7 +34,7 @@ export default function RootLayout({
         {/* Aplica el tema guardado antes del primer paint — evita el flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('dash-theme');if(t==='dark'||(t===null&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('dash-theme');if(t==='dark'||t==='light'||t==='rose'){document.documentElement.setAttribute('data-theme',t);}else if(matchMedia('(prefers-color-scheme:dark)').matches){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}`,
           }}
         />
       </head>
