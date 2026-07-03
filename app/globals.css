@@ -6,7 +6,7 @@
   --violet:#6C5CE7; --lime:#BEE63B; --coral:#FF5B43;
   --sky:#2E8BFF; --teal:#14B8A6; --gold:#FFC93C;
   --accent2:#6C5CE7;
-  --band:#F1ECE0;
+  --band:#D6CFF2;
   --sh-sm:3px 3px 0 0 var(--ink);
   --sh-md:4px 4px 0 0 var(--ink);
   --sh-lg:6px 6px 0 0 var(--ink);
@@ -20,7 +20,7 @@
 :root[data-theme="dark"] {
   --paper:#17160F; --ink:#ECE8DC; --surface:#242219;
   --muted:#9C9686; --faint:#7E786C;
-  --band:#201E17;
+  --band:#221D34;
 }
 
 /* Modo rosa (Lola) — negro-vino + rosa empolvado. Los acentos se remapean
@@ -33,7 +33,7 @@
   /* menta como secundario (complementario del rosa): cae en badges
      "Revisar", contador de agenda, sombras de carpetas y el saludo */
   --accent2:#45D6C0;
-  --band:#22131C;
+  --band:#301636;
 }
 
 body {
