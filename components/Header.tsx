@@ -11,6 +11,9 @@ import {
   IconHeartFilled,
 } from "@tabler/icons-react";
 
+// Ubicación del clima. A futuro (multiusuario) esto sale de la config del usuario.
+const LOCATION = { name: "Buenos Aires", lat: -34.61, lon: -58.38 };
+
 function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }) {
   const props = { size, stroke: 2, color: "var(--ink)" };
   if (code === 0) return <IconSun {...props} />;
@@ -20,6 +23,22 @@ function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }
   if (code <= 82) return <IconCloudRain {...props} />;
   if (code <= 86) return <IconSnowflake {...props} />;
   return <IconBolt {...props} />;
+}
+
+// Código WMO → descripción corta en español
+function weatherText(code: number | null): string {
+  if (code == null) return "";
+  if (code === 0) return "Despejado";
+  if (code <= 2) return "Parcial nublado";
+  if (code === 3) return "Nublado";
+  if (code <= 48) return "Niebla";
+  if (code <= 57) return "Llovizna";
+  if (code <= 65) return "Lluvia";
+  if (code <= 67) return "Lluvia helada";
+  if (code <= 77) return "Nieve";
+  if (code <= 82) return "Chaparrones";
+  if (code <= 86) return "Nevadas";
+  return "Tormenta";
 }
 
 function greeting(hour: number) {
@@ -113,51 +132,66 @@ export default function Header() {
   const [openWx, setOpenWx] = useState(false);
   const wxRef = useRef<HTMLDivElement>(null);
 
+  // Clima: carga inicial + auto-actualización cada 15 min
   useEffect(() => {
-    const ctrl = new AbortController();
-    fetch(
-      "https://api.open-meteo.com/v1/forecast?latitude=-34.61&longitude=-58.38" +
+    let ctrl: AbortController | null = null;
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
       "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code" +
-      "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3",
-      { signal: ctrl.signal }
-    )
-      .then((r) => r.json())
-      .then((d) => {
-        const c = d?.current;
-        if (c) setWx({
-          temp:     Math.round(c.temperature_2m),
-          feels:    Math.round(c.apparent_temperature),
-          humidity: Math.round(c.relative_humidity_2m),
-          code:     c.weather_code,
-        });
-        const dl = d?.daily;
-        if (dl?.time) {
-          setForecast(dl.time.map((iso: string, i: number) => ({
-            label: dayLabel(iso, i),
-            code:  dl.weather_code[i],
-            max:   Math.round(dl.temperature_2m_max[i]),
-            min:   Math.round(dl.temperature_2m_min[i]),
-          })));
-        }
-      })
-      .catch(() => {});
-    return () => ctrl.abort();
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3";
+
+    const load = () => {
+      ctrl?.abort();
+      ctrl = new AbortController();
+      fetch(url, { signal: ctrl.signal })
+        .then((r) => r.json())
+        .then((d) => {
+          const c = d?.current;
+          if (c) setWx({
+            temp:     Math.round(c.temperature_2m),
+            feels:    Math.round(c.apparent_temperature),
+            humidity: Math.round(c.relative_humidity_2m),
+            code:     c.weather_code,
+          });
+          const dl = d?.daily;
+          if (dl?.time) {
+            setForecast(dl.time.map((iso: string, i: number) => ({
+              label: dayLabel(iso, i),
+              code:  dl.weather_code[i],
+              max:   Math.round(dl.temperature_2m_max[i]),
+              min:   Math.round(dl.temperature_2m_min[i]),
+            })));
+          }
+        })
+        .catch(() => {});
+    };
+
+    load();
+    const id = window.setInterval(load, 15 * 60 * 1000);
+    return () => { ctrl?.abort(); window.clearInterval(id); };
   }, []);
 
-  // Cerrar el pronóstico al clickear afuera
+  // Cerrar el pronóstico al clickear afuera o con Escape
   useEffect(() => {
     if (!openWx) return;
     function onClick(e: MouseEvent) {
       if (wxRef.current && !wxRef.current.contains(e.target as Node)) setOpenWx(false);
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenWx(false);
+    }
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [openWx]);
 
   const hour = now?.getHours() ?? 12;
 
   return (
-    <header className="flex items-center justify-between gap-[14px]">
+    <header className="flex flex-wrap items-center justify-between gap-[14px]">
       {/* Destello rosa al activar el modo de Lola */}
       {pulse > 0 && <div key={pulse} className="rose-pulse" aria-hidden="true" />}
 
@@ -179,7 +213,7 @@ export default function Header() {
       </div>
 
       {/* Toggle tema + clima + reloj */}
-      <div className="flex items-center gap-[14px]">
+      <div className="flex flex-wrap items-center gap-[14px]">
         {/* Botón de Lola — corazón con inicial, late en hover */}
         <button
           type="button"
@@ -251,8 +285,8 @@ export default function Header() {
                 <span className="text-sm font-bold" style={{ fontFamily: "var(--font-head)" }}>
                   {wx.temp}°
                 </span>
-                <span className="text-[9px] mt-0.5" style={{ color: "var(--muted)", fontFamily: "var(--font-sans)" }}>
-                  ST {wx.feels}° · {wx.humidity}%
+                <span className="text-[9px] mt-0.5 capitalize" style={{ color: "var(--muted)", fontFamily: "var(--font-sans)" }}>
+                  {weatherText(wx.code).toLowerCase()}
                 </span>
               </div>
             ) : (
@@ -261,9 +295,9 @@ export default function Header() {
           </button>
 
           {/* Popover pronóstico */}
-          {openWx && forecast.length > 0 && (
+          {openWx && wx && (
             <div
-              className="absolute right-0 top-full mt-2 z-30 flex gap-2 p-2"
+              className="absolute right-0 top-full mt-2 z-30 flex flex-col gap-2 p-3"
               style={{
                 background: "var(--surface)",
                 border: "2px solid var(--ink)",
@@ -271,24 +305,36 @@ export default function Header() {
                 boxShadow: "var(--sh-md)",
               }}
             >
-              {forecast.map((f) => (
-                <div
-                  key={f.label}
-                  className="flex flex-col items-center gap-1 px-2 py-1"
-                  style={{ minWidth: 52 }}
-                >
-                  <span className="text-[9px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>
-                    {f.label}
-                  </span>
-                  <WeatherIcon code={f.code} size={20} />
-                  <span className="text-xs font-bold tabular-nums" style={{ fontFamily: "var(--font-head)" }}>
-                    {f.max}°
-                  </span>
-                  <span className="text-[10px] tabular-nums" style={{ color: "var(--faint)" }}>
-                    {f.min}°
-                  </span>
-                </div>
-              ))}
+              {/* Encabezado: ciudad + sensación / humedad */}
+              <div className="flex flex-col gap-0.5 pb-1" style={{ borderBottom: "1.5px solid var(--ink)" }}>
+                <span className="text-[10px] uppercase" style={{ fontFamily: "var(--font-head)", letterSpacing: "0.03em" }}>
+                  {LOCATION.name}
+                </span>
+                <span className="text-[9px]" style={{ color: "var(--muted)", fontFamily: "var(--font-sans)" }}>
+                  Sensación {wx.feels}° · Humedad {wx.humidity}%
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                {forecast.map((f) => (
+                  <div
+                    key={f.label}
+                    className="flex flex-col items-center gap-1 px-2 py-1"
+                    style={{ minWidth: 52 }}
+                  >
+                    <span className="text-[9px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>
+                      {f.label}
+                    </span>
+                    <WeatherIcon code={f.code} size={20} />
+                    <span className="text-xs font-bold tabular-nums" style={{ fontFamily: "var(--font-head)" }}>
+                      {f.max}°
+                    </span>
+                    <span className="text-[10px] tabular-nums" style={{ color: "var(--faint)" }}>
+                      {f.min}°
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
