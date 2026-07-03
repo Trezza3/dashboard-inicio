@@ -13,7 +13,7 @@ export default function Home() {
       {/* Header sticky — siempre visible al scrollear */}
       <div
         className="sticky top-0 z-20 px-4 sm:px-6 pt-4 sm:pt-6 pb-3"
-        style={{ background: "var(--paper)" }}
+        style={{ background: "var(--band)", borderBottom: "2px solid var(--ink)" }}
       >
         <Header />
       </div>
