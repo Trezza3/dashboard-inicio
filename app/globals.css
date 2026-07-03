@@ -6,7 +6,7 @@
   --violet:#6C5CE7; --lime:#BEE63B; --coral:#FF5B43;
   --sky:#2E8BFF; --teal:#14B8A6; --gold:#FFC93C;
   --accent2:#6C5CE7;
-  --band:#D6CFF2;
+  --band:#233A5C;
   --sh-sm:3px 3px 0 0 var(--ink);
   --sh-md:4px 4px 0 0 var(--ink);
   --sh-lg:6px 6px 0 0 var(--ink);
@@ -60,9 +60,20 @@ body {
 }
 
 body {
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: url("/Fondo%20estilo%20blanco.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--ink);
   font-family: var(--font-sans);
+}
+
+/* El fondo blueprint es exclusivo del tema claro */
+:root[data-theme="dark"] body,
+:root[data-theme="rose"] body {
+  background-image: none;
 }
 
 /* Tile interactivo: levantar en hover */
