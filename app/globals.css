@@ -71,9 +71,12 @@ body {
 }
 
 /* El fondo blueprint es exclusivo del tema claro */
-:root[data-theme="dark"] body,
-:root[data-theme="rose"] body {
+:root[data-theme="dark"] body {
   background-image: none;
+}
+/* Tema rosa: patrón pixel-art de corazones */
+:root[data-theme="rose"] body {
+  background-image: url("/Fondo%20rosa.png");
 }
 
 /* Tile interactivo: levantar en hover */
