@@ -1,8 +1,28 @@
 {
   "manifest_version": 3,
   "name": "Dashboard Inicio",
-  "version": "0.1.0",
-  "description": "Reemplaza la nueva pestana por el dashboard personal.",
+  "version": "0.2.0",
+  "description": "Reemplaza la nueva pestana por el dashboard y guarda como sesion las ventanas con muchas pestanas al cerrarlas.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": [
+    "https://dashboard-inicio.vercel.app/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://dashboard-inicio.vercel.app/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   }

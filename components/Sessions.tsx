@@ -12,6 +12,14 @@ type SavedSession = {
 
 const STORAGE_KEY = "dash-sessions-v1";
 
+function mergeIncoming(prev: SavedSession[], incoming: SavedSession[]) {
+  const seen = new Set(prev.map((s) => s.id));
+  const add = incoming.filter(
+    (s) => s && typeof s.id === "string" && !seen.has(s.id) && Array.isArray(s.links) && s.links.length > 0,
+  );
+  return add.length ? [...add, ...prev] : prev;
+}
+
 function normalizeUrl(raw: string) {
   const value = raw.trim();
   if (!value) return "";
@@ -53,6 +61,24 @@ export default function Sessions() {
       /* ignore */
     }
   }, [loaded, sessions]);
+
+  // Recibe las sesiones que la extension guarda al cerrar ventanas con muchas pestanas.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { source?: string; type?: string; sessions?: SavedSession[] };
+      if (data?.source !== "dash-extension" || data.type !== "sessions" || !Array.isArray(data.sessions)) return;
+      setSessions((prev) => mergeIncoming(prev, data.sessions!));
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  // Avisa a la extension que la pagina esta lista para recibir sesiones.
+  useEffect(() => {
+    if (!loaded) return;
+    window.postMessage({ source: "dash-page", type: "ready" }, window.location.origin);
+  }, [loaded]);
 
   function addSession() {
     const cleanLinks = links
