@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Dashboard Inicio",
+  "version": "0.1.0",
+  "description": "Reemplaza la nueva pestana por el dashboard personal.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}

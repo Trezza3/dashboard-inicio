@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 import { feeds } from "@/lib/feeds";
 
+export const dynamic = "force-static";
 export const revalidate = 900; // 15 min
 
 export type NewsItem = {
@@ -11,6 +12,17 @@ export type NewsItem = {
   link: string;
   date: string;
   image?: string;
+};
+
+export type NewsFeedError = {
+  source: string;
+  category: string;
+};
+
+export type NewsResponse = {
+  items: NewsItem[];
+  fetchedAt: string;
+  failedFeeds: NewsFeedError[];
 };
 
 type FeedItem = {
@@ -30,24 +42,49 @@ const parser = new Parser<unknown, FeedItem>({
   customFields: {
     item: [
       ["media:content", "mediaContent", { keepArray: true }],
-      ["media:thumbnail", "mediaThumbnail"],
+      ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
       ["content:encoded", "contentEncoded"],
     ],
   },
 });
 
+function cleanText(value?: string): string {
+  return (value ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+function validUrl(value?: string): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizedDate(item: FeedItem): string {
+  const candidate = item.isoDate ?? item.pubDate;
+  const time = candidate ? new Date(candidate).getTime() : NaN;
+  return Number.isFinite(time) ? new Date(time).toISOString() : new Date().toISOString();
+}
+
 function mediaUrl(node: unknown): string | undefined {
   if (!node || typeof node !== "object") return undefined;
   const url = (node as { $?: { url?: string; medium?: string; type?: string } }).$;
   if (url?.url && (!url.medium || url.medium === "image") && (!url.type || url.type.startsWith("image"))) {
-    return url.url;
+    return validUrl(url.url);
   }
   return undefined;
 }
 
 function extractImage(item: FeedItem): string | undefined {
   const enc = item.enclosure;
-  if (enc?.url && (!enc.type || enc.type.startsWith("image"))) return enc.url;
+  const enclosureUrl = validUrl(enc?.url);
+  if (enclosureUrl && (!enc?.type || enc.type.startsWith("image"))) return enclosureUrl;
 
   const mc = item.mediaContent;
   if (Array.isArray(mc)) {
@@ -60,35 +97,82 @@ function extractImage(item: FeedItem): string | undefined {
     if (u) return u;
   }
 
-  const thumb = mediaUrl(item.mediaThumbnail);
-  if (thumb) return thumb;
+  const thumbs = item.mediaThumbnail;
+  if (Array.isArray(thumbs)) {
+    for (const thumb of thumbs) {
+      const u = mediaUrl(thumb);
+      if (u) return u;
+    }
+  } else {
+    const thumb = mediaUrl(thumbs);
+    if (thumb) return thumb;
+  }
 
   const html = item.contentEncoded || item.content || "";
   const m = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
-  if (m) return m[1];
+  if (m) return validUrl(m[1]);
 
   return undefined;
 }
 
 async function parseFeed(feed: (typeof feeds)[number]): Promise<NewsItem[]> {
   const parsed = await parser.parseURL(feed.url);
-  return (parsed.items ?? []).slice(0, 10).map((item) => ({
-    title: item.title ?? "(sin título)",
-    source: feed.name,
-    category: feed.category,
-    link: item.link ?? "#",
-    date: item.pubDate ?? item.isoDate ?? new Date().toISOString(),
-    image: extractImage(item),
-  }));
+  const items: NewsItem[] = [];
+
+  for (const item of parsed.items ?? []) {
+    const link = validUrl(item.link);
+    if (!link) continue;
+
+    items.push({
+      title: cleanText(item.title) || "(sin título)",
+      source: feed.name,
+      category: feed.category,
+      link,
+      date: normalizedDate(item),
+      image: extractImage(item),
+    });
+
+    if (items.length >= 12) break;
+  }
+
+  return items;
+}
+
+function dedupe(items: NewsItem[]): NewsItem[] {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const key = `${item.link.replace(/[#?].*$/, "")}|${item.title.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function GET() {
   const results = await Promise.allSettled(feeds.map(parseFeed));
 
-  const items: NewsItem[] = results
+  const failedFeeds = results
+    .map((result, index) => ({ result, feed: feeds[index] }))
+    .filter(({ result }) => result.status === "rejected")
+    .map(({ feed }) => ({ source: feed.name, category: feed.category }));
+
+  const items: NewsItem[] = dedupe(results
     .filter((r): r is PromiseFulfilledResult<NewsItem[]> => r.status === "fulfilled")
     .flatMap((r) => r.value)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+    .slice(0, 60);
 
-  return NextResponse.json(items);
+  return NextResponse.json<NewsResponse>(
+    {
+      items,
+      fetchedAt: new Date().toISOString(),
+      failedFeeds,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
+      },
+    },
+  );
 }

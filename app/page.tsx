@@ -3,8 +3,10 @@ import Shortcuts from "@/components/Shortcuts";
 import Notes from "@/components/Notes";
 import News from "@/components/News";
 import Agenda from "@/components/Agenda";
-import FocusMode from "@/components/FocusMode";
 import Projects from "@/components/Projects";
+import MediaPlayer from "@/components/MediaPlayer";
+import Sessions from "@/components/Sessions";
+import WeatherCompact from "@/components/WeatherCompact";
 import Dolar from "@/components/widgets/Dolar";
 
 export default function Home() {
@@ -25,9 +27,9 @@ export default function Home() {
             className="col-left flex flex-col gap-[14px] order-2 md:sticky md:top-[90px] md:self-start"
             aria-label="Widgets"
           >
-            <Agenda />
             <Notes />
             <Dolar />
+            <WeatherCompact />
           </aside>
 
           {/* Centro — protagonista */}
@@ -48,14 +50,16 @@ export default function Home() {
               </h2>
               <Shortcuts />
             </section>
-            <FocusMode />
+            <Agenda />
           </div>
 
           {/* Derecha sticky */}
           <aside
             className="col-right order-3 flex flex-col gap-[14px] md:sticky md:top-[90px] md:self-start"
           >
+            <Sessions />
             <Projects />
+            <MediaPlayer />
             <News />
           </aside>
         </div>

@@ -133,6 +133,19 @@ body {
   }
 }
 
+@media (min-width: 1600px) {
+  .postit-wall {
+    display: grid;
+    grid-template-columns: repeat(2, 240px);
+    gap: 25px;
+    width: 505px;
+    transform: translateX(-250px);
+  }
+  .postit-paper {
+    width: 240px;
+  }
+}
+
 /* Focus visible en elementos interactivos */
 a:focus-visible,
 button:focus-visible,
@@ -221,4 +234,21 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .heart-btn:hover .heart-ico { animation: none; }
   .rose-pulse { animation: none; opacity: 0; }
+}
+
+/* Ecualizador animado del reproductor mientras algo suena */
+@keyframes eq-bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bar 0.9s ease-in-out infinite;
+}
+.eq-bar:nth-child(2) { animation-duration: 0.7s; animation-delay: 0.15s; }
+.eq-bar:nth-child(3) { animation-duration: 1.1s; animation-delay: 0.3s; }
+.eq-bar:nth-child(4) { animation-duration: 0.8s; animation-delay: 0.05s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar { animation: none; transform: scaleY(0.6); }
 }

@@ -1,0 +1,39 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #14130f;
+  color: #f6f1df;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+
+.shell {
+  width: min(420px, calc(100vw - 40px));
+  border: 2px solid #f6f1df;
+  box-shadow: 6px 6px 0 #c8ff2e;
+  padding: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c8ff2e;
+}
+
+h1 {
+  margin: 0 0 18px;
+  font-size: 22px;
+}
+
+a {
+  color: #f7c948;
+  font-weight: 700;
+}

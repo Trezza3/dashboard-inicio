@@ -11,6 +11,7 @@ import {
   IconFolder,
   IconTrash,
   IconArrowBackUp,
+  IconSearch,
 } from "@tabler/icons-react";
 import {
   shortcuts as defaultShortcuts,
@@ -54,6 +55,108 @@ function faviconUrl(url: string): string | null {
 function normalizeUrl(raw: string) {
   const s = raw.trim();
   return /^https?:\/\//i.test(s) ? s : "https://" + s;
+}
+
+function targetForQuery(raw: string) {
+  const query = raw.trim();
+  if (!query) return "";
+
+  const hasSpaces = /\s/.test(query);
+  const looksLikeUrl = !hasSpaces && (
+    /^https?:\/\//i.test(query) ||
+    query.includes(".") ||
+    query.startsWith("localhost") ||
+    query.startsWith("127.0.0.1")
+  );
+
+  if (looksLikeUrl) return normalizeUrl(query);
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function QuickSearch() {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const isTypingField =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      if (isTypingField || event.ctrlKey || event.metaKey || event.altKey) return;
+
+      if (event.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+        return;
+      }
+
+      if (event.key.length !== 1) return;
+
+      event.preventDefault();
+      setQuery((value) => value + event.key);
+      setOpen(true);
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function submit() {
+    const target = targetForQuery(query);
+    if (!target) return;
+    window.location.href = target;
+  }
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed left-1/2 top-6 z-50 flex w-[min(620px,calc(100vw-32px))] -translate-x-1/2 items-center gap-2 px-3 py-2"
+      style={{
+        background: "var(--paper)",
+        border: "2px solid var(--ink)",
+        borderRadius: "var(--radius)",
+        boxShadow: "var(--sh-md)",
+      }}
+    >
+      <IconSearch size={15} stroke={2.4} color="var(--muted)" />
+      <input
+        ref={inputRef}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") submit();
+          if (event.key === "Escape") {
+            setOpen(false);
+            setQuery("");
+          }
+        }}
+        onBlur={() => {
+          if (!query.trim()) setOpen(false);
+        }}
+        aria-label="Buscar o abrir URL"
+        placeholder="Buscar o escribir URL"
+        className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+        style={{ fontFamily: "var(--font-sans)", color: "var(--ink)" }}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          setQuery("");
+        }}
+        aria-label="Cerrar buscador"
+        className="inline-flex h-6 w-6 items-center justify-center"
+      >
+        <IconX size={14} stroke={2.5} color="var(--muted)" />
+      </button>
+    </div>
+  );
 }
 
 /* ---------------- Formulario de link (agregar / editar) ---------------- */
@@ -571,6 +674,7 @@ export default function Shortcuts() {
 
   return (
     <section aria-label="Accesos directos" className="flex flex-col gap-3">
+      <QuickSearch />
       <div
         className="grid justify-center gap-2"
         style={{ gridTemplateColumns: "repeat(auto-fit, 68px)", maxWidth: "100%" }}

@@ -10,6 +10,7 @@ import {
   IconMoon,
   IconHeartFilled,
 } from "@tabler/icons-react";
+import DashboardSettings from "@/components/DashboardSettings";
 
 // Ubicación del clima. A futuro (multiusuario) esto sale de la config del usuario.
 const LOCATION = { name: "Buenos Aires", lat: -34.61, lon: -58.38 };
@@ -263,6 +264,8 @@ export default function Header() {
             : <IconMoon size={18} stroke={2} color="var(--ink)" />
           }
         </button>
+
+        <DashboardSettings />
 
         {/* Clima — click para ver pronóstico 3 días */}
         <div ref={wxRef} className="relative">
