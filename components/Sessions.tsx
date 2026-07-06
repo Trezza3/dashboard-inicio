@@ -79,9 +79,12 @@ export default function Sessions() {
   }
 
   function openSession(session: SavedSession) {
-    session.links.forEach((url, index) => {
-      window.setTimeout(() => window.open(url, "_blank", "noopener,noreferrer"), index * 80);
-    });
+    // Abrir de forma sincrónica dentro del gesto del click: si se difiere con
+    // setTimeout se pierde la activación del usuario y el navegador bloquea
+    // todas las pestañas menos la primera.
+    for (const url of session.links) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   return (
