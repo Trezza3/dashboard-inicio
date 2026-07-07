@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Search from "@/components/Search";
 import Shortcuts from "@/components/Shortcuts";
 import Notes from "@/components/Notes";
 import News from "@/components/News";
@@ -34,6 +35,7 @@ export default function Home() {
 
           {/* Centro — protagonista */}
           <div className="col-center order-1 flex flex-col gap-[14px] self-start mx-auto">
+            <Search />
             <section
               className="p-[14px]"
               aria-labelledby="shortcuts-heading"
