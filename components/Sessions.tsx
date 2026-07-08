@@ -68,6 +68,9 @@ export default function Sessions() {
     };
   }, [request]);
 
+  // Solo ventanas que se cerraron con mas de 5 pestañas.
+  const closedWindows = items.filter((item) => item.kind === "window" && item.count > 5);
+
   function reopen(item: ClosedItem) {
     if (item.sessionId) {
       window.postMessage({ source: "dash-page", type: "restore", sessionId: item.sessionId }, window.location.origin);
@@ -91,16 +94,16 @@ export default function Sessions() {
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] uppercase" style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}>
-            Continuar
+            Pestañas cerradas
           </p>
-          <p className="text-[9px]" style={{ color: "var(--muted)" }}>Cerradas recientemente</p>
+          <p className="text-[9px]" style={{ color: "var(--muted)" }}>Ventanas con más de 5 pestañas</p>
         </div>
         <div className="flex items-center gap-1.5">
           <span
             className="px-1.5 py-0.5 text-[9px] tabular-nums"
             style={{ fontFamily: "var(--font-head)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
           >
-            {items.length}
+            {closedWindows.length}
           </span>
           <button type="button" aria-label="Actualizar" onClick={request}>
             <IconRefresh size={14} stroke={2.4} color="var(--muted)" />
@@ -114,14 +117,14 @@ export default function Sessions() {
         </p>
       )}
 
-      {status === "ready" && items.length === 0 && (
+      {status === "ready" && closedWindows.length === 0 && (
         <p className="py-3 text-center text-[10px]" style={{ color: "var(--muted)" }}>
-          No hay pestañas cerradas recientemente.
+          No cerraste ventanas con más de 5 pestañas.
         </p>
       )}
 
       <div className="flex flex-col gap-2">
-        {items.slice(0, 8).map((item, index) => (
+        {closedWindows.slice(0, 8).map((item, index) => (
           <button
             key={(item.sessionId ?? "") + index}
             type="button"
