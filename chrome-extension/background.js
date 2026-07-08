@@ -5,6 +5,11 @@
 const TAB_THRESHOLD = 5; // se guarda cuando la ventana tiene MAS de 5 pestanas
 const DASHBOARD_HOSTS = ["dashboard-inicio.vercel.app", "localhost:3000", "127.0.0.1:3000"];
 const WIN_PREFIX = "win:";
+const DEBUG = true;
+
+function log(...args) {
+  if (DEBUG) console.log("[Dashboard]", ...args);
+}
 
 function isSavable(url) {
   if (!/^https?:\/\//i.test(url)) return false;
@@ -17,12 +22,12 @@ async function snapshotWindow(windowId) {
   if (windowId == null || windowId === chrome.windows.WINDOW_ID_NONE) return;
   try {
     const tabs = await chrome.tabs.query({ windowId });
-    const links = tabs
-      .map((tab) => tab.url || tab.pendingUrl || "")
-      .filter(isSavable);
+    const rawUrls = tabs.map((tab) => tab.url || tab.pendingUrl || "");
+    const links = rawUrls.filter(isSavable);
     await chrome.storage.session.set({ [`${WIN_PREFIX}${windowId}`]: { count: tabs.length, links } });
-  } catch {
-    // la ventana pudo dejar de existir entre el evento y la consulta
+    log(`snapshot ventana ${windowId}: ${tabs.length} pestañas, ${links.length} guardables`, rawUrls);
+  } catch (err) {
+    log(`snapshot ventana ${windowId} fallo:`, err?.message || err);
   }
 }
 
@@ -45,7 +50,11 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
     const stored = await chrome.storage.session.get(key);
     const snap = stored[key];
     await chrome.storage.session.remove(key);
-    if (!snap || snap.count <= TAB_THRESHOLD || !snap.links.length) return;
+    log(`ventana ${windowId} cerrada. snapshot:`, snap);
+    if (!snap || snap.count <= TAB_THRESHOLD || !snap.links.length) {
+      log(`no se guarda (count=${snap?.count}, umbral=${TAB_THRESHOLD}, links=${snap?.links?.length ?? 0})`);
+      return;
+    }
 
     const session = {
       id: crypto.randomUUID(),
@@ -56,8 +65,9 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
     const { pendingSessions = [] } = await chrome.storage.local.get("pendingSessions");
     pendingSessions.unshift(session);
     await chrome.storage.local.set({ pendingSessions: pendingSessions.slice(0, 30) });
-  } catch {
-    // sin permisos o ventana ya cerrada: nada que hacer
+    log("SESION GUARDADA:", session.name, session.links);
+  } catch (err) {
+    log("error al cerrar ventana:", err?.message || err);
   }
 });
 
@@ -65,10 +75,19 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 async function seedAll() {
   try {
     const windows = await chrome.windows.getAll({ populate: false });
+    log(`seedAll: ${windows.length} ventanas`);
     await Promise.all(windows.map((win) => snapshotWindow(win.id)));
-  } catch {
-    // ignore
+  } catch (err) {
+    log("seedAll fallo:", err?.message || err);
   }
 }
-chrome.runtime.onStartup.addListener(seedAll);
-chrome.runtime.onInstalled.addListener(seedAll);
+chrome.runtime.onStartup.addListener(() => {
+  log("onStartup");
+  seedAll();
+});
+chrome.runtime.onInstalled.addListener(() => {
+  log("onInstalled");
+  seedAll();
+});
+
+log("service worker iniciado. umbral =", TAB_THRESHOLD);
