@@ -3,7 +3,22 @@
 import { useEffect, useState } from "react";
 import { IconSettings, IconX } from "@tabler/icons-react";
 
-const COLOR_OPTIONS = ["#FFE769", "#A7F3D0", "#F9A8D4", "#BFDBFE", "#FDE68A", "#FDBA74"];
+const COLOR_OPTIONS = [
+  "#FFE769", // amarillo
+  "#FDBA74", // naranja
+  "#FCA5A5", // salmon
+  "#F9A8D4", // rosa
+  "#F0ABFC", // fucsia
+  "#E9D5FF", // lila claro
+  "#C4B5FD", // lavanda
+  "#BFDBFE", // celeste
+  "#7DD3FC", // cielo
+  "#A5F3FC", // cyan
+  "#A7F3D0", // menta
+  "#BEF264", // lima
+  "#FCE7C8", // crema
+  "#E5E7EB", // gris claro
+];
 const POSTIT_SETTINGS = [
   { key: "dash-notes", label: "Post-it", fallbackColor: "#FFE769", fallbackTitle: "Post-it" },
   { key: "dash-notes-left-v1", label: "Ideas", fallbackColor: "#A7F3D0", fallbackTitle: "Ideas" },
