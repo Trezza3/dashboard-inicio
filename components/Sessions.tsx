@@ -1,30 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { IconExternalLink, IconPlus, IconTrash } from "@tabler/icons-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { IconExternalLink, IconRefresh, IconWindowMaximize, IconWorld } from "@tabler/icons-react";
 
-type SavedSession = {
-  id: string;
-  name: string;
-  links: string[];
-  createdAt: string;
-};
-
-const STORAGE_KEY = "dash-sessions-v1";
-
-function mergeIncoming(prev: SavedSession[], incoming: SavedSession[]) {
-  const seen = new Set(prev.map((s) => s.id));
-  const add = incoming.filter(
-    (s) => s && typeof s.id === "string" && !seen.has(s.id) && Array.isArray(s.links) && s.links.length > 0,
-  );
-  return add.length ? [...add, ...prev] : prev;
-}
-
-function normalizeUrl(raw: string) {
-  const value = raw.trim();
-  if (!value) return "";
-  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
-}
+type ClosedTab = { url: string; title: string };
+type ClosedWindow = { kind: "window"; sessionId?: string; count: number; links: ClosedTab[]; lastModified: number };
+type ClosedSingleTab = { kind: "tab"; sessionId?: string; url: string; title: string; lastModified: number };
+type ClosedItem = ClosedWindow | ClosedSingleTab;
 
 function hostLabel(url: string) {
   try {
@@ -34,88 +16,70 @@ function hostLabel(url: string) {
   }
 }
 
-export default function Sessions() {
-  const [sessions, setSessions] = useState<SavedSession[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [name, setName] = useState("");
-  const [links, setLinks] = useState("");
+function timeAgo(seconds: number) {
+  const diff = Math.max(0, Math.floor(Date.now() / 1000 - seconds));
+  if (diff < 60) return "recién";
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+  return `hace ${Math.floor(diff / 86400)} d`;
+}
 
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) setSessions(JSON.parse(raw));
-      } catch {
-        /* ignore */
-      }
-      setLoaded(true);
-    }, 0);
-    return () => window.clearTimeout(t);
+export default function Sessions() {
+  const [items, setItems] = useState<ClosedItem[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "no-extension">("loading");
+  const gotResponse = useRef(false);
+
+  const request = useCallback(() => {
+    window.postMessage({ source: "dash-page", type: "getRecentlyClosed" }, window.location.origin);
   }, []);
 
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    } catch {
-      /* ignore */
-    }
-  }, [loaded, sessions]);
-
-  // Recibe las sesiones que la extension guarda al cerrar ventanas con muchas pestanas.
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { source?: string; type?: string; sessions?: SavedSession[] };
-      if (data?.source !== "dash-extension" || data.type !== "sessions" || !Array.isArray(data.sessions)) return;
-      setSessions((prev) => mergeIncoming(prev, data.sessions!));
+      const data = event.data as { source?: string; type?: string; items?: ClosedItem[] };
+      if (data?.source !== "dash-extension") return;
+
+      if (data.type === "ready") {
+        request();
+      } else if (data.type === "recentlyClosed") {
+        gotResponse.current = true;
+        setItems(Array.isArray(data.items) ? data.items : []);
+        setStatus("ready");
+      } else if (data.type === "restored") {
+        request(); // la sesion restaurada ya no esta "cerrada"
+      }
     }
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
+    request();
 
-  // Avisa a la extension que la pagina esta lista para recibir sesiones.
-  useEffect(() => {
-    if (!loaded) return;
-    window.postMessage({ source: "dash-page", type: "ready" }, window.location.origin);
-  }, [loaded]);
+    // refresca al volver a la pestaña
+    const onFocus = () => request();
+    window.addEventListener("focus", onFocus);
 
-  function addSession() {
-    const cleanLinks = links
-      .split(/\s+/)
-      .map(normalizeUrl)
-      .filter(Boolean);
-    if (cleanLinks.length === 0) return;
+    // si en ~1.5s nadie respondio, no hay extension corriendo
+    const t = window.setTimeout(() => {
+      if (!gotResponse.current) setStatus("no-extension");
+    }, 1500);
 
-    setSessions((prev) => [
-      {
-        id: crypto.randomUUID(),
-        name: name.trim() || `Sesion ${prev.length + 1}`,
-        links: cleanLinks,
-        createdAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
-    setName("");
-    setLinks("");
-  }
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("focus", onFocus);
+      window.clearTimeout(t);
+    };
+  }, [request]);
 
-  function removeSession(id: string) {
-    setSessions((prev) => prev.filter((session) => session.id !== id));
-  }
-
-  function openSession(session: SavedSession) {
-    // Abrir de forma sincrónica dentro del gesto del click: si se difiere con
-    // setTimeout se pierde la activación del usuario y el navegador bloquea
-    // todas las pestañas menos la primera.
-    for (const url of session.links) {
-      window.open(url, "_blank", "noopener,noreferrer");
+  function reopen(item: ClosedItem) {
+    if (item.sessionId) {
+      window.postMessage({ source: "dash-page", type: "restore", sessionId: item.sessionId }, window.location.origin);
+      return;
     }
+    const urls = item.kind === "window" ? item.links.map((l) => l.url) : [item.url];
+    for (const url of urls) window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
     <section
-      aria-label="Sesiones guardadas"
+      aria-label="Cerradas recientemente"
       className="p-3"
       style={{
         background: "var(--surface)",
@@ -129,79 +93,73 @@ export default function Sessions() {
           <p className="text-[10px] uppercase" style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}>
             Continuar
           </p>
-          <p className="text-[9px]" style={{ color: "var(--muted)" }}>Grupos de pestanas</p>
+          <p className="text-[9px]" style={{ color: "var(--muted)" }}>Cerradas recientemente</p>
         </div>
-        <span
-          className="px-1.5 py-0.5 text-[9px] tabular-nums"
-          style={{ fontFamily: "var(--font-head)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
-        >
-          {sessions.length}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="px-1.5 py-0.5 text-[9px] tabular-nums"
+            style={{ fontFamily: "var(--font-head)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
+          >
+            {items.length}
+          </span>
+          <button type="button" aria-label="Actualizar" onClick={request}>
+            <IconRefresh size={14} stroke={2.4} color="var(--muted)" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre de sesion"
-          className="px-2 py-1.5 text-xs outline-none"
-          style={{ background: "var(--surface)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
-        />
-        <textarea
-          value={links}
-          onChange={(e) => setLinks(e.target.value)}
-          placeholder="Pega links separados por espacio o enter"
-          rows={3}
-          className="resize-none px-2 py-1.5 text-xs outline-none"
-          style={{ background: "var(--surface)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
-        />
-        <button
-          type="button"
-          onClick={addSession}
-          className="tile flex items-center justify-center gap-1.5 px-3 py-1.5 text-[10px] uppercase"
-          style={{
-            background: "var(--sky)",
-            color: "#fff",
-            border: "2px solid var(--ink)",
-            borderRadius: "var(--radius)",
-            boxShadow: "var(--sh-sm)",
-            fontFamily: "var(--font-head)",
-          }}
-        >
-          <IconPlus size={14} stroke={2.6} />
-          Guardar sesion
-        </button>
-      </div>
+      {status === "no-extension" && (
+        <p className="py-3 text-center text-[10px]" style={{ color: "var(--muted)" }}>
+          Necesitás la extensión activa para ver tus pestañas cerradas.
+        </p>
+      )}
 
-      <div className="mt-3 flex flex-col gap-2">
-        {sessions.slice(0, 4).map((session) => (
-          <div
-            key={session.id}
-            className="p-2"
+      {status === "ready" && items.length === 0 && (
+        <p className="py-3 text-center text-[10px]" style={{ color: "var(--muted)" }}>
+          No hay pestañas cerradas recientemente.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {items.slice(0, 8).map((item, index) => (
+          <button
+            key={(item.sessionId ?? "") + index}
+            type="button"
+            onClick={() => reopen(item)}
+            className="group flex items-center gap-2 p-2 text-left"
             style={{ border: "1.5px solid var(--ink)", borderRadius: "var(--radius)", background: "var(--paper)" }}
           >
-            <div className="mb-1 flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-xs" style={{ fontFamily: "var(--font-head)" }}>{session.name}</p>
-                <p className="text-[9px]" style={{ color: "var(--muted)" }}>{session.links.length} links</p>
-              </div>
-              <div className="flex shrink-0 gap-1.5">
-                <button type="button" aria-label={`Abrir ${session.name}`} onClick={() => openSession(session)}>
-                  <IconExternalLink size={13} stroke={2.4} color="var(--ink)" />
-                </button>
-                <button type="button" aria-label={`Borrar ${session.name}`} onClick={() => removeSession(session.id)}>
-                  <IconTrash size={13} stroke={2.4} color="var(--muted)" />
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {session.links.slice(0, 3).map((url) => (
-                <span key={url} className="max-w-[110px] truncate text-[8px]" style={{ color: "var(--muted)" }}>
-                  {hostLabel(url)}
-                </span>
-              ))}
-            </div>
-          </div>
+            <span
+              className="grid h-7 w-7 shrink-0 place-items-center"
+              style={{ border: "1.5px solid var(--ink)", borderRadius: "var(--radius)", background: "var(--surface)" }}
+            >
+              {item.kind === "window" ? (
+                <IconWindowMaximize size={14} stroke={2.2} color="var(--ink)" />
+              ) : (
+                <IconWorld size={14} stroke={2.2} color="var(--ink)" />
+              )}
+            </span>
+
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs" style={{ fontFamily: "var(--font-head)" }}>
+                {item.kind === "window" ? `Ventana · ${item.count} pestañas` : item.title}
+              </span>
+              <span className="block truncate text-[9px]" style={{ color: "var(--muted)" }}>
+                {item.kind === "window"
+                  ? item.links.slice(0, 3).map((l) => hostLabel(l.url)).join(" · ")
+                  : hostLabel(item.url)}
+                {" — "}
+                {timeAgo(item.lastModified)}
+              </span>
+            </span>
+
+            <IconExternalLink
+              size={14}
+              stroke={2.2}
+              color="var(--muted)"
+              className="shrink-0 opacity-60 group-hover:opacity-100"
+            />
+          </button>
         ))}
       </div>
     </section>

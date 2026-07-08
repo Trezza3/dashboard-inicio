@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Dashboard Inicio",
-  "version": "0.2.0",
-  "description": "Reemplaza la nueva pestana por el dashboard y guarda como sesion las ventanas con muchas pestanas al cerrarlas.",
-  "permissions": ["tabs", "storage"],
+  "version": "0.3.0",
+  "description": "Reemplaza la nueva pestana por el dashboard y muestra las pestanas y ventanas cerradas recientemente para reabrirlas.",
+  "permissions": ["tabs", "sessions"],
   "host_permissions": [
     "https://dashboard-inicio.vercel.app/*",
     "http://localhost:3000/*",

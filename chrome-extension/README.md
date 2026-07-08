@@ -13,15 +13,15 @@ Cuando la extension este activa, cada nueva pestana abre:
 
 `https://dashboard-inicio.vercel.app`
 
-## Guardado automatico de sesiones
+## Pestanas cerradas recientemente
 
-Al **cerrar una ventana con mas de 5 pestanas**, la extension guarda esas URLs
-como una sesion. La proxima vez que abris el dashboard, aparece en la seccion
-`Continuar` lista para reabrir todo junto.
+La seccion `Continuar` del dashboard muestra las **pestanas y ventanas cerradas
+recientemente** (igual que "Cerradas recientemente" del historial) y permite
+reabrirlas restaurando la sesion tal cual, con su historial.
 
-- `background.js`: vigila las ventanas y detecta el cierre (permisos `tabs` y `storage`).
-- `content.js`: le entrega las sesiones guardadas a la pagina del dashboard.
-- El umbral (5) se ajusta en `TAB_THRESHOLD` dentro de `background.js`.
+- `background.js`: usa la API nativa `chrome.sessions.getRecentlyClosed()` y
+  `chrome.sessions.restore()` (permisos `tabs` y `sessions`).
+- `content.js`: puente entre la pagina del dashboard y el background.
 
 > Tras actualizar la extension hay que **recargarla**: en `chrome://extensions`,
 > boton de recargar sobre la tarjeta "Dashboard Inicio".

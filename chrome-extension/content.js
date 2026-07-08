@@ -1,38 +1,25 @@
-// Puente entre la extension y la pagina del dashboard.
-// El dashboard avisa "listo" (postMessage) y este script le entrega las
-// sesiones que el background guardo al cerrar ventanas con muchas pestanas.
+// Puente entre la pagina del dashboard y el background.
+// La pagina pide (postMessage) la lista de cerradas recientemente o restaurar
+// una sesion; este script lo reenvia al background y devuelve la respuesta.
 
-let ready = false;
-
-async function flush() {
-  if (!ready) return;
-  try {
-    const { pendingSessions = [] } = await chrome.storage.local.get("pendingSessions");
-    if (!pendingSessions.length) return;
-    // Sacamos las pendientes ANTES de entregarlas para no duplicar en carreras.
-    await chrome.storage.local.remove("pendingSessions");
-    window.postMessage(
-      { source: "dash-extension", type: "sessions", sessions: pendingSessions },
-      window.location.origin,
-    );
-  } catch {
-    // storage no disponible: se reintenta en el proximo evento
-  }
+function ask(message, replyType, extra) {
+  chrome.runtime.sendMessage(message, (response) => {
+    if (chrome.runtime.lastError) return;
+    window.postMessage({ source: "dash-extension", type: replyType, ...extra, ...response }, window.location.origin);
+  });
 }
 
-// La pagina (React) avisa cuando termino de cargar y puede recibir sesiones.
 window.addEventListener("message", (event) => {
   if (event.source !== window || event.origin !== window.location.origin) return;
   const data = event.data;
-  if (data && data.source === "dash-page" && data.type === "ready") {
-    ready = true;
-    flush();
+  if (!data || data.source !== "dash-page") return;
+
+  if (data.type === "getRecentlyClosed") {
+    ask({ type: "getRecentlyClosed" }, "recentlyClosed");
+  } else if (data.type === "restore") {
+    ask({ type: "restore", sessionId: data.sessionId }, "restored", { sessionId: data.sessionId });
   }
 });
 
-// Si se cierra una ventana grande mientras el dashboard esta abierto, entregarla al toque.
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.pendingSessions && changes.pendingSessions.newValue?.length) {
-    flush();
-  }
-});
+// Avisa a la pagina que la extension esta lista para responder.
+window.postMessage({ source: "dash-extension", type: "ready" }, window.location.origin);
