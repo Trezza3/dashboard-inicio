@@ -127,9 +127,12 @@ body {
 @media (min-width: 1180px) {
   .layout-grid {
     grid-template-columns:
-      minmax(220px, 280px)
-      minmax(420px, 720px)
-      minmax(280px, 340px);
+      minmax(280px, 380px)
+      minmax(380px, 640px)
+      minmax(300px, 380px);
+  }
+  .postit-wall {
+    transform: translateX(-18px);
   }
 }
 

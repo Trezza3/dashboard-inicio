@@ -5,7 +5,6 @@ import Notes from "@/components/Notes";
 import News from "@/components/News";
 import Agenda from "@/components/Agenda";
 import Projects from "@/components/Projects";
-import MediaPlayer from "@/components/MediaPlayer";
 import Sessions from "@/components/Sessions";
 import WeatherCompact from "@/components/WeatherCompact";
 import Dolar from "@/components/widgets/Dolar";
@@ -29,8 +28,14 @@ export default function Home() {
             aria-label="Widgets"
           >
             <Notes />
-            <Dolar />
-            <WeatherCompact />
+            <div className="flex gap-[14px]">
+              <div className="min-w-0 flex-1">
+                <WeatherCompact />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Dolar />
+              </div>
+            </div>
           </aside>
 
           {/* Centro — protagonista */}
@@ -59,9 +64,14 @@ export default function Home() {
           <aside
             className="col-right order-3 flex flex-col gap-[14px] md:sticky md:top-[90px] md:self-start"
           >
-            <Sessions />
-            <Projects />
-            <MediaPlayer />
+            <div className="flex gap-[14px]">
+              <div className="min-w-0 flex-1">
+                <Sessions />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Projects />
+              </div>
+            </div>
             <News />
           </aside>
         </div>

@@ -336,7 +336,7 @@ export default function Notes() {
       <PostItBoard
         storageKey="dash-notes"
         defaultTitle="Post-it"
-        defaultColor="#FFE769"
+        defaultColor="#FBF1C7"
         rotation={-1}
       />
       <PostItBoard

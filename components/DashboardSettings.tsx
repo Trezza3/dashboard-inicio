@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { IconSettings, IconX } from "@tabler/icons-react";
 
 const COLOR_OPTIONS = [
-  "#FFE769", // amarillo
+  "#FBF1C7", // crema
   "#FDBA74", // naranja
   "#FCA5A5", // salmon
   "#F9A8D4", // rosa
@@ -20,7 +20,7 @@ const COLOR_OPTIONS = [
   "#E5E7EB", // gris claro
 ];
 const POSTIT_SETTINGS = [
-  { key: "dash-notes", label: "Post-it", fallbackColor: "#FFE769", fallbackTitle: "Post-it" },
+  { key: "dash-notes", label: "Post-it", fallbackColor: "#FBF1C7", fallbackTitle: "Post-it" },
   { key: "dash-notes-left-v1", label: "Ideas", fallbackColor: "#A7F3D0", fallbackTitle: "Ideas" },
 ] as const;
 
