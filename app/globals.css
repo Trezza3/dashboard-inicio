@@ -61,7 +61,7 @@ body {
 
 body {
   background-color: var(--paper);
-  background-image: url("/Fondo%20estilo%20blanco.png");
+  background-image: url("/fondo-blanco.webp");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -70,13 +70,12 @@ body {
   font-family: var(--font-sans);
 }
 
-/* El fondo blueprint es exclusivo del tema claro */
 :root[data-theme="dark"] body {
   background-image: none;
 }
-/* Tema rosa: patrón pixel-art de corazones */
+
 :root[data-theme="rose"] body {
-  background-image: url("/Fondo%20rosa.png");
+  background-image: url("/fondo-rosa.webp");
 }
 
 /* Tile interactivo: levantar en hover */

@@ -117,7 +117,16 @@ function extractImage(item: FeedItem): string | undefined {
 type FeedInput = { name: string; category: string; url: string };
 
 async function parseFeed(feed: FeedInput): Promise<NewsItem[]> {
-  const parsed = await parser.parseURL(feed.url);
+  // fetch con revalidate: el XML de cada fuente queda en la cache de datos
+  // de Next 15 min — las cargas siguientes no vuelven a pegarle al sitio.
+  const response = await fetch(feed.url, {
+    next: { revalidate: 900 },
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; DashboardNews/1.0)" },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) throw new Error(`feed-http-${response.status}`);
+  const xml = await response.text();
+  const parsed = await parser.parseString(xml);
   const items: NewsItem[] = [];
 
   for (const item of parsed.items ?? []) {

@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // Carga solo los iconos usados en vez del paquete completo.
+    optimizePackageImports: ["@tabler/icons-react"],
+  },
 };
 
 export default nextConfig;

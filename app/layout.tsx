@@ -31,6 +31,10 @@ export default function RootLayout({
       className={`${archivoBlack.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
       <head>
+        {/* Favicons de noticias/buscador salen de google.com — ahorra el handshake */}
+        <link rel="preconnect" href="https://www.google.com" />
+        {/* Precarga el fondo del tema claro (el más usado) para el primer paint */}
+        <link rel="preload" as="image" href="/fondo-blanco.webp" media="(prefers-color-scheme: light)" />
         {/* Aplica el tema guardado antes del primer paint — evita el flash */}
         <script
           dangerouslySetInnerHTML={{

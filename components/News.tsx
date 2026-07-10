@@ -6,6 +6,7 @@ import type { NewsItem, NewsResponse } from "@/app/api/news/route";
 import { DEFAULT_FEEDS, FEED_CATALOG, type Feed } from "@/lib/feeds";
 
 const FEEDS_KEY = "dash-feeds-v1";
+const NEWS_CACHE_KEY = "dash-news-cache-v1";
 
 function horasAtras(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -90,7 +91,8 @@ export default function News() {
   const [draftCategory, setDraftCategory] = useState("");
   const feedsRef = useRef<Feed[]>([]);
 
-  // Carga de fuentes propias (semilla: DEFAULT_FEEDS).
+  // Carga de fuentes propias (semilla: DEFAULT_FEEDS) + pintado instantáneo
+  // con la última tanda de noticias guardada mientras se refresca de fondo.
   useEffect(() => {
     const t = window.setTimeout(() => {
       try {
@@ -98,6 +100,19 @@ export default function News() {
         setFeeds(raw ? (JSON.parse(raw) as Feed[]) : DEFAULT_FEEDS);
       } catch {
         setFeeds(DEFAULT_FEEDS);
+      }
+      try {
+        const cached = localStorage.getItem(NEWS_CACHE_KEY);
+        if (cached) {
+          const data = JSON.parse(cached) as { items: NewsItem[]; fetchedAt: string };
+          if (Array.isArray(data.items) && data.items.length) {
+            setItems(data.items);
+            setFetchedAt(data.fetchedAt);
+            setLoading(false);
+          }
+        }
+      } catch {
+        /* cache corrupta: se ignora */
       }
       setFeedsLoaded(true);
     }, 0);
@@ -134,6 +149,11 @@ export default function News() {
       setItems(data.items);
       setFetchedAt(data.fetchedAt);
       setFailedFeeds(data.failedFeeds.length);
+      try {
+        localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ items: data.items, fetchedAt: data.fetchedAt }));
+      } catch {
+        /* sin espacio: se ignora */
+      }
     } catch {
       setError("No pude actualizar las noticias.");
     } finally {
