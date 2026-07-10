@@ -66,10 +66,10 @@ export default function Home() {
           >
             <div className="flex gap-[14px]">
               <div className="min-w-0 flex-1">
-                <Sessions />
+                <Projects />
               </div>
               <div className="min-w-0 flex-1">
-                <Projects />
+                <Sessions />
               </div>
             </div>
             <News />
