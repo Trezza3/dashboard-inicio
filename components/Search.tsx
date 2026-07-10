@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconSearch } from "@tabler/icons-react";
+import { IconHistory, IconSearch } from "@tabler/icons-react";
+
+type HistoryItem = { url: string; title: string };
+type Option =
+  | { kind: "history"; url: string; title: string }
+  | { kind: "suggest"; text: string };
 
 function looksLikeUrl(value: string) {
   if (/^https?:\/\//i.test(value)) return true;
@@ -16,28 +21,62 @@ function toDestination(raw: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(value)}`;
 }
 
+function hostLabel(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function favicon(url: string) {
+  try {
+    return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
+  } catch {
+    return "";
+  }
+}
+
 export default function Search() {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [active, setActive] = useState(-1);
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const queryRef = useRef("");
 
   // Autofoco al abrir la pestaña, para escribir directo tras Ctrl+T.
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Trae sugerencias de Google (con debounce) mientras se escribe.
+  // Respuestas de la extension con el historial del navegador.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const data = event.data as { source?: string; type?: string; query?: string; results?: HistoryItem[] };
+      if (data?.source !== "dash-extension" || data.type !== "historyResults") return;
+      if (data.query !== queryRef.current) return; // respuesta vieja
+      setHistory(Array.isArray(data.results) ? data.results : []);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  // Trae sugerencias de Google + historial (con debounce) mientras se escribe.
   useEffect(() => {
     const q = query.trim();
+    queryRef.current = q;
     const controller = new AbortController();
     const id = window.setTimeout(async () => {
       if (!q) {
         setSuggestions([]);
+        setHistory([]);
         setActive(-1);
         return;
       }
+      window.postMessage({ source: "dash-page", type: "searchHistory", query: q }, window.location.origin);
       try {
         const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`, { signal: controller.signal });
         const data = (await res.json()) as { suggestions?: string[] };
@@ -59,31 +98,48 @@ export default function Search() {
     window.location.href = toDestination(value);
   }, []);
 
+  // Historial primero (como el omnibox del navegador), despues las sugerencias.
+  const options: Option[] = [
+    ...history.slice(0, 4).map((item): Option => ({ kind: "history", url: item.url, title: item.title })),
+    ...suggestions.slice(0, 6).map((text): Option => ({ kind: "suggest", text })),
+  ];
+
+  function choose(option: Option | undefined) {
+    if (!option) {
+      go(query);
+    } else if (option.kind === "history") {
+      window.location.href = option.url;
+    } else {
+      go(option.text);
+    }
+  }
+
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setOpen(true);
-      setActive((i) => Math.min(suggestions.length - 1, i + 1));
+      setActive((i) => Math.min(options.length - 1, i + 1));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setActive((i) => Math.max(-1, i - 1));
     } else if (event.key === "Enter") {
-      go(active >= 0 && suggestions[active] ? suggestions[active] : query);
+      choose(active >= 0 ? options[active] : undefined);
     } else if (event.key === "Escape") {
       setOpen(false);
       setSuggestions([]);
+      setHistory([]);
       setActive(-1);
     }
   }
 
-  const showList = open && query.trim().length > 0 && suggestions.length > 0;
+  const showList = open && query.trim().length > 0 && options.length > 0;
 
   return (
     <div className="relative">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          go(active >= 0 && suggestions[active] ? suggestions[active] : query);
+          choose(active >= 0 ? options[active] : undefined);
         }}
         className="flex items-center gap-2 px-3"
         style={{
@@ -125,14 +181,14 @@ export default function Search() {
             boxShadow: "var(--sh-md)",
           }}
         >
-          {suggestions.map((suggestion, index) => (
-            <li key={suggestion}>
+          {options.map((option, index) => (
+            <li key={option.kind === "history" ? `h-${option.url}` : `s-${option.text}`}>
               <button
                 type="button"
                 // onMouseDown para que dispare antes del blur del input
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  go(suggestion);
+                  choose(option);
                 }}
                 onMouseEnter={() => setActive(index)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
@@ -141,8 +197,25 @@ export default function Search() {
                   background: index === active ? "var(--paper)" : "transparent",
                 }}
               >
-                <IconSearch size={14} stroke={2.2} color="var(--faint)" />
-                <span className="truncate">{suggestion}</span>
+                {option.kind === "history" ? (
+                  <>
+                    {favicon(option.url) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={favicon(option.url)} alt="" width={14} height={14} className="shrink-0" />
+                    ) : (
+                      <IconHistory size={14} stroke={2.2} color="var(--faint)" />
+                    )}
+                    <span className="truncate">{option.title}</span>
+                    <span className="ml-auto shrink-0 text-[10px]" style={{ color: "var(--faint)" }}>
+                      {hostLabel(option.url)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <IconSearch size={14} stroke={2.2} color="var(--faint)" />
+                    <span className="truncate">{option.text}</span>
+                  </>
+                )}
               </button>
             </li>
           ))}

@@ -18,6 +18,8 @@ window.addEventListener("message", (event) => {
     ask({ type: "getRecentlyClosed" }, "recentlyClosed");
   } else if (data.type === "restore") {
     ask({ type: "restore", sessionId: data.sessionId }, "restored", { sessionId: data.sessionId });
+  } else if (data.type === "searchHistory") {
+    ask({ type: "searchHistory", query: data.query }, "historyResults", { query: data.query });
   }
 });
 

@@ -45,10 +45,28 @@ async function getRecentlyClosed() {
   }
 }
 
+// Busca en el historial del navegador (para el buscador del dashboard).
+async function searchHistory(query) {
+  try {
+    const items = await chrome.history.search({ text: query || "", maxResults: 20, startTime: 0 });
+    return items
+      .filter((item) => isRealPage(item.url))
+      .sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0))
+      .slice(0, 8)
+      .map((item) => ({ url: item.url, title: item.title || item.url }));
+  } catch {
+    return [];
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "getRecentlyClosed") {
     getRecentlyClosed().then((items) => sendResponse({ items }));
     return true; // respuesta asincronica
+  }
+  if (message?.type === "searchHistory") {
+    searchHistory(message.query).then((results) => sendResponse({ results }));
+    return true;
   }
   if (message?.type === "restore") {
     chrome.sessions
