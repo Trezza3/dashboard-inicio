@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import Parser from "rss-parser";
-import { feeds } from "@/lib/feeds";
+import { DEFAULT_FEEDS } from "@/lib/feeds";
 
-export const dynamic = "force-static";
-export const revalidate = 900; // 15 min
+export const dynamic = "force-dynamic";
 
 export type NewsItem = {
   title: string;
@@ -115,7 +114,9 @@ function extractImage(item: FeedItem): string | undefined {
   return undefined;
 }
 
-async function parseFeed(feed: (typeof feeds)[number]): Promise<NewsItem[]> {
+type FeedInput = { name: string; category: string; url: string };
+
+async function parseFeed(feed: FeedInput): Promise<NewsItem[]> {
   const parsed = await parser.parseURL(feed.url);
   const items: NewsItem[] = [];
 
@@ -149,11 +150,27 @@ function dedupe(items: NewsItem[]): NewsItem[] {
   });
 }
 
-export async function GET() {
-  const results = await Promise.allSettled(feeds.map(parseFeed));
+function sanitizeFeeds(raw: unknown): FeedInput[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((f): f is FeedInput => {
+      if (!f || typeof f !== "object") return false;
+      const feed = f as Partial<FeedInput>;
+      return typeof feed.url === "string" && !!validUrl(feed.url) && typeof feed.name === "string";
+    })
+    .slice(0, 20)
+    .map((f) => ({
+      name: cleanText(f.name).slice(0, 40) || "Fuente",
+      category: cleanText(f.category).slice(0, 24) || "Otros",
+      url: f.url,
+    }));
+}
+
+async function buildResponse(feedList: FeedInput[]) {
+  const results = await Promise.allSettled(feedList.map(parseFeed));
 
   const failedFeeds = results
-    .map((result, index) => ({ result, feed: feeds[index] }))
+    .map((result, index) => ({ result, feed: feedList[index] }))
     .filter(({ result }) => result.status === "rejected")
     .map(({ feed }) => ({ source: feed.name, category: feed.category }));
 
@@ -161,18 +178,27 @@ export async function GET() {
     .filter((r): r is PromiseFulfilledResult<NewsItem[]> => r.status === "fulfilled")
     .flatMap((r) => r.value)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
-    .slice(0, 60);
+    .slice(0, 80);
 
   return NextResponse.json<NewsResponse>(
-    {
-      items,
-      fetchedAt: new Date().toISOString(),
-      failedFeeds,
-    },
-    {
-      headers: {
-        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
-      },
-    },
+    { items, fetchedAt: new Date().toISOString(), failedFeeds },
+    { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+// Noticias con las fuentes del usuario.
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as { feeds?: unknown };
+    const feedList = sanitizeFeeds(body.feeds);
+    if (!feedList.length) return buildResponse(DEFAULT_FEEDS);
+    return await buildResponse(feedList);
+  } catch {
+    return NextResponse.json({ items: [], fetchedAt: new Date().toISOString(), failedFeeds: [] }, { status: 400 });
+  }
+}
+
+// Fallback con las fuentes por defecto.
+export async function GET() {
+  return buildResponse(DEFAULT_FEEDS);
 }
