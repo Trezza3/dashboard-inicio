@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 import { DEFAULT_FEEDS } from "@/lib/feeds";
+import { fetchPublicHttp, readTextWithLimit } from "@/lib/server/public-http";
 
 export const dynamic = "force-dynamic";
 
@@ -119,13 +120,13 @@ type FeedInput = { name: string; category: string; url: string };
 async function parseFeed(feed: FeedInput): Promise<NewsItem[]> {
   // fetch con revalidate: el XML de cada fuente queda en la cache de datos
   // de Next 15 min — las cargas siguientes no vuelven a pegarle al sitio.
-  const response = await fetch(feed.url, {
+  const response = await fetchPublicHttp(feed.url, {
     next: { revalidate: 900 },
     headers: { "User-Agent": "Mozilla/5.0 (compatible; DashboardNews/1.0)" },
     signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) throw new Error(`feed-http-${response.status}`);
-  const xml = await response.text();
+  const xml = await readTextWithLimit(response);
   const parsed = await parser.parseString(xml);
   const items: NewsItem[] = [];
 
@@ -165,7 +166,13 @@ function sanitizeFeeds(raw: unknown): FeedInput[] {
     .filter((f): f is FeedInput => {
       if (!f || typeof f !== "object") return false;
       const feed = f as Partial<FeedInput>;
-      return typeof feed.url === "string" && !!validUrl(feed.url) && typeof feed.name === "string";
+      return (
+        typeof feed.url === "string" &&
+        feed.url.length <= 2_048 &&
+        !!validUrl(feed.url) &&
+        typeof feed.name === "string" &&
+        (feed.category === undefined || typeof feed.category === "string")
+      );
     })
     .slice(0, 20)
     .map((f) => ({
@@ -198,6 +205,13 @@ async function buildResponse(feedList: FeedInput[]) {
 // Noticias con las fuentes del usuario.
 export async function POST(request: Request) {
   try {
+    if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+      return NextResponse.json({ items: [], fetchedAt: new Date().toISOString(), failedFeeds: [] }, { status: 415 });
+    }
+    const contentLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > 64_000) {
+      return NextResponse.json({ items: [], fetchedAt: new Date().toISOString(), failedFeeds: [] }, { status: 413 });
+    }
     const body = (await request.json()) as { feeds?: unknown };
     const feedList = sanitizeFeeds(body.feeds);
     if (!feedList.length) return buildResponse(DEFAULT_FEEDS);

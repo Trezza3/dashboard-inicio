@@ -1,13 +1,14 @@
-# Dashboard Inicio Chrome Extension
+# Extensión de Dashboard Inicio
 
-Extension minima para que `Ctrl+T` abra el dashboard publicado.
+Extensión mínima para que cada pestaña nueva abra el dashboard publicado y,
+con permiso del usuario, integre el historial y las sesiones recientes.
 
 ## Instalar en Chrome o Brave
 
-1. Abrir `chrome://extensions` o `brave://extensions`.
-2. Activar `Modo desarrollador`.
-3. Elegir `Cargar sin empaquetar`.
-4. Seleccionar esta carpeta: `chrome-extension`.
+1. Descargar o copiar la carpeta `chrome-extension`.
+2. Abrir `chrome://extensions` o `brave://extensions`.
+3. Activar **Modo desarrollador**.
+4. Elegir **Cargar sin empaquetar** y seleccionar esa carpeta.
 
 Cuando la extension este activa, cada nueva pestana abre:
 
@@ -26,16 +27,12 @@ reabrirlas restaurando la sesion tal cual, con su historial.
 > Tras actualizar la extension hay que **recargarla**: en `chrome://extensions`,
 > boton de recargar sobre la tarjeta "Dashboard Inicio".
 
-## Instalacion externa local
+## Privacidad y permisos
 
-Tambien queda empaquetada como:
+- `sessions` y `tabs`: muestran y restauran pestañas cerradas recientemente.
+- `history`: suma resultados del historial al buscador del dashboard.
+- Los datos leídos por la extensión se envían únicamente a la pestaña del
+  dashboard; no se guardan en el servidor.
 
-`/home/valentin/Escritorio/Dashbord/chrome-extension.crx`
-
-ID de extension:
-
-`kncedjlnbljhljkkmcenppfnofannbkg`
-
-## Proxima etapa
-
-Boton "Guardar pestanas abiertas" (captura manual de la ventana actual) y sincronizacion de sesiones entre dispositivos.
+Después de modificar los archivos de la extensión, hay que recargarla desde la
+pantalla de extensiones del navegador.

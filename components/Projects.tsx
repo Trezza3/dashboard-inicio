@@ -291,6 +291,22 @@ export default function Projects() {
           );
         })}
       </ul>
+
+      {loaded && projects.length === 0 && editingId === null && (
+        <button
+          type="button"
+          onClick={openAdd}
+          className="w-full px-2 py-3 text-center text-[10px]"
+          style={{
+            color: "var(--muted)",
+            border: "1.5px dashed var(--ink)",
+            borderRadius: "var(--radius)",
+            background: "var(--paper)",
+          }}
+        >
+          Agregá tu primer proyecto
+        </button>
+      )}
     </section>
   );
 }

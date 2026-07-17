@@ -15,8 +15,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Dashboard de inicio",
+  title: "Dashboard Inicio",
+  description: "Un inicio personalizable con accesos, agenda, notas, proyectos y noticias.",
 };
 
 export default function RootLayout({

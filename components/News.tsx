@@ -7,6 +7,32 @@ import { DEFAULT_FEEDS, FEED_CATALOG, type Feed } from "@/lib/feeds";
 
 const FEEDS_KEY = "dash-feeds-v1";
 const NEWS_CACHE_KEY = "dash-news-cache-v1";
+const LEGACY_FEED_REPLACEMENTS: Record<string, Omit<Feed, "id">> = {
+  "https://www.xataka.com/tag/feeds/rss2.xml": { name: "Xataka", category: "Tech", url: "https://www.xataka.com/index.xml" },
+  "https://www.genbeta.com/tag/feeds/rss2.xml": { name: "The Verge", category: "Tech", url: "https://www.theverge.com/rss/index.xml" },
+  "https://vandal.elespanol.com/xml.cfm": { name: "IGN España", category: "Gaming", url: "https://es.ign.com/feed.xml" },
+  "https://www.3djuegos.com/rss/noticias.xml": { name: "3DJuegos", category: "Gaming", url: "https://www.3djuegos.com/index.xml" },
+  "https://www.infobae.com/feeds/rss/": { name: "Infobae Argentina", category: "ARG", url: "https://www.infobae.com/arc/outboundfeeds/rss/tags_slug/argentina/" },
+  "https://www.pagina12.com.ar/rss/portada": { name: "Clarín", category: "ARG", url: "https://www.clarin.com/rss/lo-ultimo/" },
+};
+
+function normalizeStoredFeeds(value: unknown): Feed[] {
+  if (!Array.isArray(value)) return DEFAULT_FEEDS;
+
+  const migrated = value.flatMap((entry): Feed[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const feed = entry as Partial<Feed>;
+    if (typeof feed.url !== "string" || typeof feed.name !== "string" || typeof feed.category !== "string") return [];
+
+    const replacement = LEGACY_FEED_REPLACEMENTS[feed.url];
+    return [{
+      id: typeof feed.id === "string" && feed.id ? feed.id : crypto.randomUUID(),
+      ...(replacement ?? { name: feed.name, category: feed.category, url: feed.url }),
+    }];
+  });
+
+  return migrated.filter((feed, index) => migrated.findIndex((candidate) => candidate.url === feed.url) === index);
+}
 
 function horasAtras(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -97,7 +123,7 @@ export default function News() {
     const t = window.setTimeout(() => {
       try {
         const raw = localStorage.getItem(FEEDS_KEY);
-        setFeeds(raw ? (JSON.parse(raw) as Feed[]) : DEFAULT_FEEDS);
+        setFeeds(raw ? normalizeStoredFeeds(JSON.parse(raw)) : DEFAULT_FEEDS);
       } catch {
         setFeeds(DEFAULT_FEEDS);
       }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dashboard Inicio",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Reemplaza la nueva pestana por el dashboard: pestanas cerradas recientemente e historial en el buscador.",
   "permissions": ["tabs", "sessions", "history"],
   "host_permissions": [

@@ -2,11 +2,15 @@
 // API nativa del navegador (chrome.sessions), igual que "Cerradas recientemente"
 // del historial. El content script hace de puente con la pagina.
 
-const DASHBOARD_HOSTS = ["dashboard-inicio.vercel.app", "localhost:3000", "127.0.0.1:3000"];
+const DASHBOARD_HOSTS = new Set(["dashboard-inicio.vercel.app", "localhost:3000", "127.0.0.1:3000"]);
 
 function isRealPage(url) {
-  if (!/^https?:\/\//i.test(url || "")) return false;
-  return !DASHBOARD_HOSTS.some((host) => url.includes(host));
+  try {
+    const parsed = new URL(url);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && !DASHBOARD_HOSTS.has(parsed.host);
+  } catch {
+    return false;
+  }
 }
 
 // Convierte una Session de chrome.sessions a un item simple para el dashboard.
@@ -48,7 +52,8 @@ async function getRecentlyClosed() {
 // Busca en el historial del navegador (para el buscador del dashboard).
 async function searchHistory(query) {
   try {
-    const items = await chrome.history.search({ text: query || "", maxResults: 20, startTime: 0 });
+    const text = typeof query === "string" ? query.slice(0, 200) : "";
+    const items = await chrome.history.search({ text, maxResults: 20, startTime: 0 });
     return items
       .filter((item) => isRealPage(item.url))
       .sort((a, b) => (b.visitCount || 0) - (a.visitCount || 0))

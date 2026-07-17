@@ -20,6 +20,10 @@
 # production
 /build
 
+# local release artifacts and discarded background explorations
+/chrome-extension.crx
+/public/background-*.png
+
 # misc
 .DS_Store
 *.pem

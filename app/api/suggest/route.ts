@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // Proxy de las sugerencias de Google (desde el server para evitar CORS).
 export async function GET(request: Request) {
-  const query = new URL(request.url).searchParams.get("q")?.trim();
+  const query = new URL(request.url).searchParams.get("q")?.trim().slice(0, 200);
   if (!query) {
     return NextResponse.json({ suggestions: [] }, { headers: { "Cache-Control": "no-store" } });
   }

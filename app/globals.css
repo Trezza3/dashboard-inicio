@@ -23,7 +23,7 @@
   --band:#221D34;
 }
 
-/* Modo rosa (Lola) — negro-vino + rosa empolvado. Los acentos se remapean
+/* Modo rosa — negro-vino + rosa empolvado. Los acentos se remapean
    a la familia rosa para que todo el dashboard quede monocromático. */
 :root[data-theme="rose"] {
   --paper:#1A0E14; --ink:#E68AAE; --surface:#271520;
@@ -213,7 +213,7 @@ input:focus-visible {
 .news-scroll::-webkit-scrollbar-track { background: transparent; }
 .news-scroll::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 2px; }
 
-/* Botón de Lola: el corazón late al pasar el mouse */
+/* Botón del modo rosa: el corazón late al pasar el mouse */
 @keyframes heartbeat {
   0%, 100% { transform: scale(1); }
   20%      { transform: scale(1.18); }

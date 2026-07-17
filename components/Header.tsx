@@ -109,7 +109,7 @@ function useTheme() {
   // Sol/luna: alterna claro/oscuro (y sale de rosa si estaba activo)
   function toggleDark() { apply(theme === "dark" ? "light" : "dark"); }
 
-  // Corazón de Lola: entra/sale del modo rosa con destello
+  // Corazón: entra/sale del modo rosa con destello.
   function toggleRose() {
     if (theme === "rose") {
       apply("light");
@@ -193,7 +193,7 @@ export default function Header() {
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-[14px]">
-      {/* Destello rosa al activar el modo de Lola */}
+      {/* Destello al activar el modo rosa */}
       {pulse > 0 && <div key={pulse} className="rose-pulse" aria-hidden="true" />}
 
       {/* Fecha + saludo dinámico */}
@@ -209,17 +209,17 @@ export default function Header() {
         }}
       >
         <span className="text-sm sm:text-base tracking-tight">
-          {now ? formatFecha(now) : "—"} · {greeting(hour)}, VALEN
+          {now ? formatFecha(now) : "—"} · {greeting(hour)}
         </span>
       </div>
 
       {/* Toggle tema + clima + reloj */}
       <div className="flex flex-wrap items-center gap-[14px]">
-        {/* Botón de Lola — corazón con inicial, late en hover */}
+        {/* Modo rosa */}
         <button
           type="button"
           onClick={toggleRose}
-          aria-label={theme === "rose" ? "Salir del modo rosa" : "Activar el modo rosa de Lola"}
+          aria-label={theme === "rose" ? "Salir del modo rosa" : "Activar el modo rosa"}
           aria-pressed={theme === "rose"}
           className="heart-btn tile relative flex items-center justify-center"
           style={{
@@ -230,18 +230,8 @@ export default function Header() {
             boxShadow: "var(--sh-sm)",
           }}
         >
-          <span className="heart-ico relative flex items-center justify-center">
+          <span className="heart-ico relative flex items-center justify-center" aria-hidden="true">
             <IconHeartFilled size={26} color={theme === "rose" ? "var(--paper)" : "#E8578F"} />
-            <span
-              className="absolute inset-0 flex items-center justify-center text-[10px] font-bold"
-              style={{
-                fontFamily: "var(--font-head)",
-                color: theme === "rose" ? "#E8578F" : "var(--paper)",
-                paddingBottom: 1,
-              }}
-            >
-              L
-            </span>
           </span>
         </button>
 

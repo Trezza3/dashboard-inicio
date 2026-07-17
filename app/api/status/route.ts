@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchPublicHttp } from "@/lib/server/public-http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,17 +13,15 @@ export type PingResult = {
 
 async function ping(url: string): Promise<PingResult> {
   const start = Date.now();
-  if (!/^https?:\/\//i.test(url)) {
-    return { url, ok: false, code: 0, ms: 0 };
-  }
   try {
-    const res = await fetch(url, {
+    const res = await fetchPublicHttp(url, {
       method: "GET",
-      redirect: "follow",
       signal: AbortSignal.timeout(7000),
       headers: { "User-Agent": "DashboardStatusBot/1.0" },
     });
-    return { url, ok: res.status >= 200 && res.status < 400, code: res.status, ms: Date.now() - start };
+    const result = { url, ok: res.status >= 200 && res.status < 400, code: res.status, ms: Date.now() - start };
+    await res.body?.cancel();
+    return result;
   } catch {
     return { url, ok: false, code: 0, ms: Date.now() - start };
   }
@@ -30,8 +29,17 @@ async function ping(url: string): Promise<PingResult> {
 
 export async function POST(request: Request) {
   try {
+    if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+      return NextResponse.json({ results: [] }, { status: 415 });
+    }
+    const contentLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > 32_000) {
+      return NextResponse.json({ results: [] }, { status: 413 });
+    }
     const body = (await request.json()) as { urls?: string[] };
-    const urls = Array.isArray(body.urls) ? body.urls.slice(0, 20) : [];
+    const urls = Array.isArray(body.urls)
+      ? [...new Set(body.urls.filter((url): url is string => typeof url === "string" && url.length <= 2_048))].slice(0, 12)
+      : [];
     const results = await Promise.all(urls.map(ping));
     return NextResponse.json({ results }, { headers: { "Cache-Control": "no-store" } });
   } catch {

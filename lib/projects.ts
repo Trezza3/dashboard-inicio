@@ -33,43 +33,5 @@ export const STATUS_META: Record<ProjectStatus, { label: string; bg: string; tex
   idea: { label: "Idea", bg: "var(--sky)", text: "#fff" },
 };
 
-// Semilla inicial (se copia a localStorage la primera vez). Editable desde la UI.
-export const DEFAULT_PROJECTS: Project[] = [
-  {
-    id: "seed-dashboard",
-    name: "Dashboard",
-    status: "live",
-    accent: "var(--lime)",
-    description: "Inicio diario y centro operativo.",
-    monitorUrl: "https://dashboard-inicio.vercel.app",
-    links: [
-      { id: "seed-dashboard-web", label: "Web", url: "https://dashboard-inicio.vercel.app" },
-      { id: "seed-dashboard-vercel", label: "Vercel", url: "https://vercel.com/valentin-s-projects37/dashboard-inicio" },
-    ],
-  },
-  {
-    id: "seed-kayasclub",
-    name: "Kayasclub",
-    status: "live",
-    accent: "var(--sky)",
-    description: "Catálogo, checkout y operación comercial.",
-    monitorUrl: "https://kayasclub-web.vercel.app",
-    links: [{ id: "seed-kayasclub-web", label: "Web", url: "https://kayasclub-web.vercel.app" }],
-  },
-  {
-    id: "seed-kalma",
-    name: "Kalma",
-    status: "building",
-    accent: "var(--teal)",
-    description: "Agenda, turnos y configuración operativa.",
-    links: [],
-  },
-  {
-    id: "seed-javier",
-    name: "Javier",
-    status: "building",
-    accent: "var(--violet)",
-    description: "Web, contenidos y QA visual.",
-    links: [],
-  },
-];
+// Cada navegador empieza vacío y guarda sus propios proyectos en localStorage.
+export const DEFAULT_PROJECTS: Project[] = [];

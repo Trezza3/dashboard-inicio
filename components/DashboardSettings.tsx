@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { IconSettings, IconX } from "@tabler/icons-react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { IconDownload, IconSettings, IconUpload, IconX } from "@tabler/icons-react";
+import {
+  DASHBOARD_BACKUP_MAX_BYTES,
+  createDashboardBackup,
+  parseDashboardBackup,
+  restoreDashboardBackup,
+} from "@/lib/dashboard-backup";
 
 const COLOR_OPTIONS = [
   "#FBF1C7", // crema
@@ -28,6 +34,8 @@ export default function DashboardSettings() {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<Record<string, string>>({});
   const [titles, setTitles] = useState<Record<string, string>>({});
+  const [backupStatus, setBackupStatus] = useState("");
+  const backupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -62,6 +70,45 @@ export default function DashboardSettings() {
     }
   }
 
+  function exportBackup() {
+    try {
+      const backup = createDashboardBackup(localStorage);
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const date = backup.exportedAt.slice(0, 10);
+      anchor.href = url;
+      anchor.download = `dashboard-respaldo-${date}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setBackupStatus(`Respaldo creado · ${Object.keys(backup.data).length} datos`);
+    } catch {
+      setBackupStatus("No pude crear el respaldo.");
+    }
+  }
+
+  async function importBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > DASHBOARD_BACKUP_MAX_BYTES) {
+      setBackupStatus("El archivo es demasiado grande.");
+      return;
+    }
+
+    try {
+      const backup = parseDashboardBackup(await file.text());
+      const count = Object.keys(backup.data).length;
+      if (!window.confirm(`Se restaurarán ${count} datos del dashboard. ¿Continuar?`)) return;
+      restoreDashboardBackup(localStorage, backup);
+      setBackupStatus(`Listo · ${count} datos restaurados`);
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch {
+      setBackupStatus("El archivo no es un respaldo válido.");
+    }
+  }
+
   return (
     <div className="relative">
       <button
@@ -84,7 +131,7 @@ export default function DashboardSettings() {
 
       {open && (
         <div
-          className="absolute right-0 top-full z-40 mt-2 w-[260px] p-3"
+          className="fixed left-4 right-4 top-4 z-40 max-h-[calc(100vh-32px)] w-auto overflow-y-auto p-3 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[min(620px,calc(100vh-90px))] sm:w-[300px]"
           style={{
             background: "var(--surface)",
             border: "2px solid var(--ink)",
@@ -148,6 +195,62 @@ export default function DashboardSettings() {
                 </div>
               </div>
             ))}
+
+            <div className="pt-3" style={{ borderTop: "1.5px solid var(--ink)" }}>
+              <p className="mb-1 text-[9px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>
+                Respaldo
+              </p>
+              <p className="mb-2 text-[10px] leading-snug" style={{ color: "var(--muted)" }}>
+                Guarda notas, agenda, accesos, proyectos y preferencias en un archivo.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={exportBackup}
+                  className="tile inline-flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-[9px] uppercase"
+                  style={{
+                    fontFamily: "var(--font-head)",
+                    border: "1.5px solid var(--ink)",
+                    borderRadius: "var(--radius)",
+                    background: "var(--lime)",
+                    color: "#14130F",
+                    boxShadow: "var(--sh-sm)",
+                  }}
+                >
+                  <IconDownload size={13} stroke={2.5} />
+                  Descargar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => backupInputRef.current?.click()}
+                  className="tile inline-flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-[9px] uppercase"
+                  style={{
+                    fontFamily: "var(--font-head)",
+                    border: "1.5px solid var(--ink)",
+                    borderRadius: "var(--radius)",
+                    background: "var(--surface)",
+                    color: "var(--ink)",
+                    boxShadow: "var(--sh-sm)",
+                  }}
+                >
+                  <IconUpload size={13} stroke={2.5} />
+                  Restaurar
+                </button>
+                <input
+                  ref={backupInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={importBackup}
+                  className="sr-only"
+                  aria-label="Elegir respaldo del dashboard"
+                />
+              </div>
+              {backupStatus && (
+                <p role="status" className="mt-2 text-[9px]" style={{ color: "var(--muted)" }}>
+                  {backupStatus}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
