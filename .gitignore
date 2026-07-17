@@ -22,6 +22,7 @@
 
 # local release artifacts and discarded background explorations
 /chrome-extension.crx
+/dashboard-extension.zip
 /public/background-*.png
 
 # misc
