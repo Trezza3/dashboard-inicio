@@ -276,8 +276,6 @@ export default function Projects() {
                     <a
                       key={link.id}
                       href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="badge inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] uppercase"
                       style={{ fontFamily: "var(--font-head)", border: "1.5px solid var(--ink)", borderRadius: "var(--radius)" }}
                     >

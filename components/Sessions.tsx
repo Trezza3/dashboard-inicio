@@ -76,8 +76,12 @@ export default function Sessions() {
       window.postMessage({ source: "dash-page", type: "restore", sessionId: item.sessionId }, window.location.origin);
       return;
     }
-    const urls = item.kind === "window" ? item.links.map((l) => l.url) : [item.url];
-    for (const url of urls) window.open(url, "_blank", "noopener,noreferrer");
+    if (item.kind === "tab") {
+      window.location.assign(item.url);
+      return;
+    }
+    // Una ventana cerrada tiene varias URLs: no queda otra que abrir pestañas.
+    for (const link of item.links) window.open(link.url, "_blank", "noopener,noreferrer");
   }
 
   return (

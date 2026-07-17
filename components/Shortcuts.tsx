@@ -398,8 +398,6 @@ function LinkTile({
       <a
         href={link.url}
         title={link.name}
-        target="_blank"
-        rel="noopener noreferrer"
         draggable={false}
         className="tile flex items-center justify-center overflow-hidden"
         style={{

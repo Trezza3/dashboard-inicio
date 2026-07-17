@@ -525,8 +525,6 @@ export default function News() {
             <li>
               <a
                 href={featured.link}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="news-link block pb-2"
               >
                 <div
@@ -568,8 +566,6 @@ export default function News() {
               >
                 <a
                   href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="news-link flex gap-2 py-2"
                 >
                   <Thumb image={item.image} link={item.link} />
