@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 import { DEFAULT_FEEDS } from "@/lib/feeds";
+import { type FeedInput, cleanText, dedupe, sanitizeFeeds, validUrl } from "@/lib/news";
 import { fetchPublicHttp, readTextWithLimit } from "@/lib/server/public-http";
+import { createRateLimiter, guardRequest } from "@/lib/server/request-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -47,24 +49,6 @@ const parser = new Parser<unknown, FeedItem>({
     ],
   },
 });
-
-function cleanText(value?: string): string {
-  return (value ?? "")
-    .replace(/\s+/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .trim();
-}
-
-function validUrl(value?: string): string | undefined {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
-    return url.toString();
-  } catch {
-    return undefined;
-  }
-}
 
 function normalizedDate(item: FeedItem): string {
   const candidate = item.isoDate ?? item.pubDate;
@@ -115,8 +99,6 @@ function extractImage(item: FeedItem): string | undefined {
   return undefined;
 }
 
-type FeedInput = { name: string; category: string; url: string };
-
 async function parseFeed(feed: FeedInput): Promise<NewsItem[]> {
   // fetch con revalidate: el XML de cada fuente queda en la cache de datos
   // de Next 15 min — las cargas siguientes no vuelven a pegarle al sitio.
@@ -149,39 +131,6 @@ async function parseFeed(feed: FeedInput): Promise<NewsItem[]> {
   return items;
 }
 
-function dedupe(items: NewsItem[]): NewsItem[] {
-  const seen = new Set<string>();
-
-  return items.filter((item) => {
-    const key = `${item.link.replace(/[#?].*$/, "")}|${item.title.toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function sanitizeFeeds(raw: unknown): FeedInput[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((f): f is FeedInput => {
-      if (!f || typeof f !== "object") return false;
-      const feed = f as Partial<FeedInput>;
-      return (
-        typeof feed.url === "string" &&
-        feed.url.length <= 2_048 &&
-        !!validUrl(feed.url) &&
-        typeof feed.name === "string" &&
-        (feed.category === undefined || typeof feed.category === "string")
-      );
-    })
-    .slice(0, 20)
-    .map((f) => ({
-      name: cleanText(f.name).slice(0, 40) || "Fuente",
-      category: cleanText(f.category).slice(0, 24) || "Otros",
-      url: f.url,
-    }));
-}
-
 async function buildResponse(feedList: FeedInput[]) {
   const results = await Promise.allSettled(feedList.map(parseFeed));
 
@@ -202,8 +151,15 @@ async function buildResponse(feedList: FeedInput[]) {
   );
 }
 
+// Cada carga de noticias dispara hasta 20 feeds: margen para varias pestañas
+// y recargas manuales, no para usar la API como proxy.
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
+const EMPTY = { items: [], fetchedAt: "", failedFeeds: [] };
+
 // Noticias con las fuentes del usuario.
 export async function POST(request: Request) {
+  const blocked = guardRequest(request, limiter, EMPTY);
+  if (blocked) return blocked;
   try {
     if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
       return NextResponse.json({ items: [], fetchedAt: new Date().toISOString(), failedFeeds: [] }, { status: 415 });
@@ -222,6 +178,8 @@ export async function POST(request: Request) {
 }
 
 // Fallback con las fuentes por defecto.
-export async function GET() {
+export async function GET(request: Request) {
+  const blocked = guardRequest(request, limiter, EMPTY);
+  if (blocked) return blocked;
   return buildResponse(DEFAULT_FEEDS);
 }

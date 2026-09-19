@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Space_Grotesk } from "next/font/google";
+import ServiceWorker from "@/components/ServiceWorker";
 import "./globals.css";
 
 const archivoBlack = Archivo_Black({
@@ -44,6 +45,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full" style={{ fontFamily: "var(--font-sans)" }}>
         {children}
+        <ServiceWorker />
       </body>
     </html>
   );

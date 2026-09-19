@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconPlus, IconRefresh, IconSearch, IconSettings, IconTrash, IconX } from "@tabler/icons-react";
 import type { NewsItem, NewsResponse } from "@/app/api/news/route";
 import { DEFAULT_FEEDS, FEED_CATALOG, type Feed } from "@/lib/feeds";
+import { usePersistentState } from "@/lib/use-persistent-state";
 
 const FEEDS_KEY = "dash-feeds-v1";
 const NEWS_CACHE_KEY = "dash-news-cache-v1";
+const LAST_VISIT_KEY = "dash-news-last-visit";
+// Clave publicada sin el prefijo `dash-`: quedaba afuera del respaldo.
+const LEGACY_LAST_VISIT_KEY = "news-last-visit";
 const LEGACY_FEED_REPLACEMENTS: Record<string, Omit<Feed, "id">> = {
   "https://www.xataka.com/tag/feeds/rss2.xml": { name: "Xataka", category: "Tech", url: "https://www.xataka.com/index.xml" },
   "https://www.genbeta.com/tag/feeds/rss2.xml": { name: "The Verge", category: "Tech", url: "https://www.theverge.com/rss/index.xml" },
@@ -16,8 +20,8 @@ const LEGACY_FEED_REPLACEMENTS: Record<string, Omit<Feed, "id">> = {
   "https://www.pagina12.com.ar/rss/portada": { name: "Clarín", category: "ARG", url: "https://www.clarin.com/rss/lo-ultimo/" },
 };
 
-function normalizeStoredFeeds(value: unknown): Feed[] {
-  if (!Array.isArray(value)) return DEFAULT_FEEDS;
+function normalizeStoredFeeds(value: unknown): Feed[] | null {
+  if (!Array.isArray(value)) return null;
 
   const migrated = value.flatMap((entry): Feed[] => {
     if (!entry || typeof entry !== "object") return [];
@@ -100,8 +104,10 @@ function Thumb({ image, link }: { image?: string; link: string }) {
 }
 
 export default function News() {
-  const [feeds, setFeeds] = useState<Feed[]>([]);
-  const [feedsLoaded, setFeedsLoaded] = useState(false);
+  const [feeds, setFeeds, feedsLoaded] = usePersistentState<Feed[]>(FEEDS_KEY, {
+    initial: DEFAULT_FEEDS,
+    parse: normalizeStoredFeeds,
+  });
   const [items, setItems] = useState<NewsItem[]>([]);
   const [active, setActive] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,16 +123,10 @@ export default function News() {
   const [draftCategory, setDraftCategory] = useState("");
   const feedsRef = useRef<Feed[]>([]);
 
-  // Carga de fuentes propias (semilla: DEFAULT_FEEDS) + pintado instantáneo
-  // con la última tanda de noticias guardada mientras se refresca de fondo.
+  // Pintado instantáneo con la última tanda de noticias guardada mientras se
+  // refresca de fondo.
   useEffect(() => {
     const t = window.setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(FEEDS_KEY);
-        setFeeds(raw ? normalizeStoredFeeds(JSON.parse(raw)) : DEFAULT_FEEDS);
-      } catch {
-        setFeeds(DEFAULT_FEEDS);
-      }
       try {
         const cached = localStorage.getItem(NEWS_CACHE_KEY);
         if (cached) {
@@ -140,20 +140,13 @@ export default function News() {
       } catch {
         /* cache corrupta: se ignora */
       }
-      setFeedsLoaded(true);
     }, 0);
     return () => window.clearTimeout(t);
   }, []);
 
   useEffect(() => {
     feedsRef.current = feeds;
-    if (!feedsLoaded) return;
-    try {
-      localStorage.setItem(FEEDS_KEY, JSON.stringify(feeds));
-    } catch {
-      /* ignore */
-    }
-  }, [feeds, feedsLoaded]);
+  }, [feeds]);
 
   const loadNews = useCallback(async (manual = false) => {
     if (manual) {
@@ -199,9 +192,15 @@ export default function News() {
   // Marca de última visita: lo nuevo es lo posterior a la vez anterior
   useEffect(() => {
     const t = window.setTimeout(() => {
-      const raw = localStorage.getItem("news-last-visit");
-      setPrevVisit(raw ? Number(raw) : 0);
-      try { localStorage.setItem("news-last-visit", String(Date.now())); } catch { /* ignore */ }
+      try {
+        const raw = localStorage.getItem(LAST_VISIT_KEY) ?? localStorage.getItem(LEGACY_LAST_VISIT_KEY);
+        const previous = Number(raw);
+        setPrevVisit(Number.isFinite(previous) ? previous : 0);
+        localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
+        localStorage.removeItem(LEGACY_LAST_VISIT_KEY);
+      } catch {
+        /* ignore */
+      }
     }, 0);
     return () => window.clearTimeout(t);
   }, []);

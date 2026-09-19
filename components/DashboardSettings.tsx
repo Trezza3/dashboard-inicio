@@ -1,13 +1,14 @@
 "use client";
 
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
-import { IconDownload, IconSettings, IconUpload, IconX } from "@tabler/icons-react";
+import { IconCurrentLocation, IconDownload, IconMapPin, IconSettings, IconUpload, IconX } from "@tabler/icons-react";
 import {
   DASHBOARD_BACKUP_MAX_BYTES,
   createDashboardBackup,
   parseDashboardBackup,
   restoreDashboardBackup,
 } from "@/lib/dashboard-backup";
+import { type PlaceResult, searchPlaces, useWeatherLocation } from "@/lib/weather";
 
 const COLOR_OPTIONS = [
   "#FBF1C7", // crema
@@ -196,6 +197,8 @@ export default function DashboardSettings() {
               </div>
             ))}
 
+            <WeatherLocationSetting />
+
             <div className="pt-3" style={{ borderTop: "1.5px solid var(--ink)" }}>
               <p className="mb-1 text-[9px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>
                 Respaldo
@@ -253,6 +256,115 @@ export default function DashboardSettings() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function WeatherLocationSetting() {
+  const [location, setLocation] = useWeatherLocation();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const t = window.setTimeout(() => {
+      searchPlaces(query, controller.signal)
+        .then((places) => {
+          setResults(places);
+          setStatus(query.trim().length >= 2 && !places.length ? "Sin resultados." : "");
+        })
+        .catch(() => {});
+    }, 250);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [query]);
+
+  function choose(place: PlaceResult) {
+    setLocation({ name: place.name, lat: place.lat, lon: place.lon });
+    setQuery("");
+    setResults([]);
+    setStatus("");
+  }
+
+  function locateMe() {
+    if (!("geolocation" in navigator)) {
+      setStatus("Tu navegador no permite ubicación.");
+      return;
+    }
+    setStatus("Buscando tu ubicación...");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocation({
+          name: "Mi ubicación",
+          lat: Math.round(coords.latitude * 100) / 100,
+          lon: Math.round(coords.longitude * 100) / 100,
+        });
+        setStatus("");
+      },
+      () => setStatus("No pude obtener tu ubicación."),
+      { timeout: 10_000, maximumAge: 60 * 60 * 1000 },
+    );
+  }
+
+  return (
+    <div className="pt-3" style={{ borderTop: "1.5px solid var(--ink)" }}>
+      <p className="mb-1 text-[9px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>
+        Clima
+      </p>
+      <p className="mb-2 flex items-center gap-1 text-[10px]" style={{ color: "var(--muted)" }}>
+        <IconMapPin size={11} stroke={2.4} /> {location.name}
+      </p>
+      <div className="flex gap-1.5">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar ciudad"
+          aria-label="Buscar ciudad para el clima"
+          className="min-w-0 flex-1 px-2 py-1.5 text-xs outline-none"
+          style={{
+            background: "var(--surface)",
+            border: "1.5px solid var(--ink)",
+            borderRadius: "var(--radius)",
+            color: "var(--ink)",
+            fontFamily: "var(--font-sans)",
+          }}
+        />
+        <button
+          type="button"
+          onClick={locateMe}
+          aria-label="Usar mi ubicación"
+          title="Usar mi ubicación"
+          className="grid w-8 shrink-0 place-items-center"
+          style={{ border: "1.5px solid var(--ink)", borderRadius: "var(--radius)", background: "var(--surface)" }}
+        >
+          <IconCurrentLocation size={14} stroke={2.4} color="var(--ink)" />
+        </button>
+      </div>
+      {results.length > 0 && (
+        <ul className="mt-1.5 flex flex-col gap-1">
+          {results.map((place) => (
+            <li key={`${place.lat},${place.lon}`}>
+              <button
+                type="button"
+                onClick={() => choose(place)}
+                className="w-full px-2 py-1 text-left text-[11px]"
+                style={{ border: "1.5px solid var(--ink)", borderRadius: "var(--radius)", background: "var(--paper)" }}
+              >
+                <span style={{ fontFamily: "var(--font-head)" }}>{place.name}</span>
+                {place.detail && <span style={{ color: "var(--muted)" }}> · {place.detail}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {status && (
+        <p role="status" className="mt-1.5 text-[9px]" style={{ color: "var(--muted)" }}>
+          {status}
+        </p>
       )}
     </div>
   );

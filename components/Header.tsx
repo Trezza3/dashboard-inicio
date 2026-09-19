@@ -11,9 +11,7 @@ import {
   IconHeartFilled,
 } from "@tabler/icons-react";
 import DashboardSettings from "@/components/DashboardSettings";
-
-// Ubicación del clima. A futuro (multiusuario) esto sale de la config del usuario.
-const LOCATION = { name: "Buenos Aires", lat: -34.61, lon: -58.38 };
+import { useWeather } from "@/lib/weather";
 
 function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }) {
   const props = { size, stroke: 2, color: "var(--ink)" };
@@ -48,14 +46,26 @@ function greeting(hour: number) {
   return "BUENAS NOCHES";
 }
 
+// El reloj muestra HH:MM: alcanza con actualizar al cambiar el minuto
+// (antes re-renderizaba todo el header cada segundo).
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    const firstTick = window.setTimeout(() => setNow(new Date()), 0);
-    const id = setInterval(() => setNow(new Date()), 1000);
+    let timer: number | undefined;
+    function tick() {
+      setNow(new Date());
+      window.clearTimeout(timer);
+      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 20);
+    }
+    // Los timers se frenan en pestañas ocultas: al volver se corrige enseguida.
+    function onVisibility() {
+      if (document.visibilityState === "visible") tick();
+    }
+    timer = window.setTimeout(tick, 0);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      window.clearTimeout(firstTick);
-      clearInterval(id);
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
   return now;
@@ -122,55 +132,14 @@ function useTheme() {
   return { theme, toggleDark, toggleRose, pulse };
 }
 
-type Weather = { temp: number; feels: number; humidity: number; code: number };
-type ForecastDay = { label: string; code: number; max: number; min: number };
-
 export default function Header() {
   const now = useClock();
   const { theme, toggleDark, toggleRose, pulse } = useTheme();
-  const [wx, setWx] = useState<Weather | null>(null);
-  const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const { location, data: weather } = useWeather();
+  const wx = weather?.current ?? null;
+  const forecast = (weather?.days ?? []).map((day, i) => ({ ...day, label: dayLabel(day.date, i) }));
   const [openWx, setOpenWx] = useState(false);
   const wxRef = useRef<HTMLDivElement>(null);
-
-  // Clima: carga inicial + auto-actualización cada 15 min
-  useEffect(() => {
-    let ctrl: AbortController | null = null;
-    const url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-      "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code" +
-      "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3";
-
-    const load = () => {
-      ctrl?.abort();
-      ctrl = new AbortController();
-      fetch(url, { signal: ctrl.signal })
-        .then((r) => r.json())
-        .then((d) => {
-          const c = d?.current;
-          if (c) setWx({
-            temp:     Math.round(c.temperature_2m),
-            feels:    Math.round(c.apparent_temperature),
-            humidity: Math.round(c.relative_humidity_2m),
-            code:     c.weather_code,
-          });
-          const dl = d?.daily;
-          if (dl?.time) {
-            setForecast(dl.time.map((iso: string, i: number) => ({
-              label: dayLabel(iso, i),
-              code:  dl.weather_code[i],
-              max:   Math.round(dl.temperature_2m_max[i]),
-              min:   Math.round(dl.temperature_2m_min[i]),
-            })));
-          }
-        })
-        .catch(() => {});
-    };
-
-    load();
-    const id = window.setInterval(load, 15 * 60 * 1000);
-    return () => { ctrl?.abort(); window.clearInterval(id); };
-  }, []);
 
   // Cerrar el pronóstico al clickear afuera o con Escape
   useEffect(() => {
@@ -232,6 +201,16 @@ export default function Header() {
         >
           <span className="heart-ico relative flex items-center justify-center" aria-hidden="true">
             <IconHeartFilled size={26} color={theme === "rose" ? "var(--paper)" : "#E8578F"} />
+            <span
+              className="absolute inset-0 flex items-center justify-center text-[10px] font-bold"
+              style={{
+                fontFamily: "var(--font-head)",
+                color: theme === "rose" ? "#E8578F" : "var(--paper)",
+                paddingBottom: 1,
+              }}
+            >
+              L
+            </span>
           </span>
         </button>
 
@@ -301,7 +280,7 @@ export default function Header() {
               {/* Encabezado: ciudad + sensación / humedad */}
               <div className="flex flex-col gap-0.5 pb-1" style={{ borderBottom: "1.5px solid var(--ink)" }}>
                 <span className="text-[10px] uppercase" style={{ fontFamily: "var(--font-head)", letterSpacing: "0.03em" }}>
-                  {LOCATION.name}
+                  {location.name}
                 </span>
                 <span className="text-[9px]" style={{ color: "var(--muted)", fontFamily: "var(--font-sans)" }}>
                   Sensación {wx.feels}° · Humedad {wx.humidity}%

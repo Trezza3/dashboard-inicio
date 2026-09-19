@@ -10,7 +10,7 @@ type NextFetchInit = RequestInit & {
   next?: { revalidate?: number };
 };
 
-function ipv4IsPublic(address: string): boolean {
+export function ipv4IsPublic(address: string): boolean {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
     return false;
@@ -57,7 +57,7 @@ function ipv6Hextets(address: string): number[] | null {
   return parsed;
 }
 
-function ipv6IsPublic(address: string): boolean {
+export function ipv6IsPublic(address: string): boolean {
   const parts = ipv6Hextets(address);
   if (!parts) return false;
 

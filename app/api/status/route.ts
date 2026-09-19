@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchPublicHttp } from "@/lib/server/public-http";
+import { createRateLimiter, guardRequest } from "@/lib/server/request-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,12 @@ async function ping(url: string): Promise<PingResult> {
   }
 }
 
+// La página chequea cada 60 s por pestaña visible: 30/min deja margen de sobra.
+const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
+
 export async function POST(request: Request) {
+  const blocked = guardRequest(request, limiter, { results: [] });
+  if (blocked) return blocked;
   try {
     if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
       return NextResponse.json({ results: [] }, { status: 415 });

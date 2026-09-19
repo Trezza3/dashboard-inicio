@@ -14,7 +14,15 @@ su configuración de forma independiente:
 - accesos, carpetas y favoritos;
 - notas y agenda;
 - proyectos y URLs monitoreadas;
-- fuentes de noticias, tema y preferencias visuales.
+- fuentes de noticias, tema y preferencias visuales;
+- ciudad del clima (Configuración → Clima) y grupos de pestañas guardados.
+
+Si hay varias pestañas del dashboard abiertas, los cambios hechos en una se
+reflejan en las demás al instante (no se pisan entre sí).
+
+La página se guarda en el navegador con un service worker: después de la
+primera visita, la pestaña nueva abre desde el cache local sin esperar la red y
+la versión nueva de un deploy se ve en la apertura siguiente.
 
 Los datos quedan en `localStorage`. No hay sincronización entre dispositivos ni
 recuperación si se borran los datos del sitio.
@@ -53,8 +61,9 @@ Comandos disponibles:
 
 ```bash
 npm run lint    # ESLint
+npm test        # tests (Vitest)
 npm run build   # build de producción + TypeScript
-npm run check   # lint y build
+npm run check   # lint, tests y build (lo mismo corre en CI)
 npm run start   # sirve el build de producción
 ```
 

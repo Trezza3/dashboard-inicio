@@ -1,8 +1,17 @@
+/* Pantalla de paso mientras redirige al dashboard. Usa el mismo fondo que el
+   dashboard para que no haya destello; el cartel solo aparece si tarda. */
 :root {
   color-scheme: light dark;
   font-family: Arial, Helvetica, sans-serif;
-  background: #14130f;
-  color: #f6f1df;
+  background: #ebe7db;
+  color: #14130f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #17160f;
+    color: #ece8dc;
+  }
 }
 
 body {
@@ -14,9 +23,15 @@ body {
 
 .shell {
   width: min(420px, calc(100vw - 40px));
-  border: 2px solid #f6f1df;
+  border: 2px solid currentColor;
   box-shadow: 6px 6px 0 #c8ff2e;
   padding: 24px;
+  opacity: 0;
+  animation: show 0.2s ease 1.5s forwards;
+}
+
+@keyframes show {
+  to { opacity: 1; }
 }
 
 .eyebrow {
@@ -25,7 +40,6 @@ body {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #c8ff2e;
 }
 
 h1 {
@@ -34,6 +48,6 @@ h1 {
 }
 
 a {
-  color: #f7c948;
+  color: inherit;
   font-weight: 700;
 }

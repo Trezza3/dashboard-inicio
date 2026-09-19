@@ -3,7 +3,8 @@ export const DASHBOARD_BACKUP_VERSION = 1;
 export const DASHBOARD_BACKUP_MAX_BYTES = 2_000_000;
 
 const PERSONAL_KEY_PREFIX = "dash-";
-const EXCLUDED_KEYS = new Set(["dash-news-cache-v1"]);
+// Caches que se regeneran solos: no tienen sentido en un respaldo.
+const EXCLUDED_KEYS = new Set(["dash-news-cache-v1", "dash-weather-cache-v1"]);
 
 export type DashboardBackup = {
   app: typeof DASHBOARD_BACKUP_APP;

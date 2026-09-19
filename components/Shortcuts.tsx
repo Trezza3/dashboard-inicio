@@ -18,7 +18,9 @@ import {
   type Link,
   type GridItem,
   type FolderItem,
+  parseGridItems,
 } from "@/lib/shortcuts";
+import { usePersistentState } from "@/lib/use-persistent-state";
 
 const CHIP_OPTIONS = [
   { label: "ink",    value: "var(--ink)"    },
@@ -41,6 +43,12 @@ function genId() {
 
 function seedItems(): GridItem[] {
   return defaultShortcuts.map((s) => ({ kind: "link", name: s.name, url: s.url, chip: s.chip }));
+}
+
+// Accesos guardados con el formato de la v2 (lista plana de links).
+function readLegacyShortcuts(): GridItem[] | null {
+  const raw = localStorage.getItem(LEGACY_KEY);
+  return raw ? parseGridItems(JSON.parse(raw)) : null;
 }
 
 function faviconUrl(url: string): string | null {
@@ -503,8 +511,11 @@ function FolderTile({
 
 /* ================================ Componente ================================ */
 export default function Shortcuts() {
-  const [items, setItems] = useState<GridItem[]>(seedItems);
-  const [loaded, setLoaded] = useState(false);
+  const [items, setItems] = usePersistentState<GridItem[]>(STORAGE_KEY, {
+    initial: seedItems,
+    parse: parseGridItems,
+    migrate: readLegacyShortcuts,
+  });
   const [openFolder, setOpenFolder] = useState<string | null>(null);
 
   // where: "top" para la grilla principal, o el id de una carpeta
@@ -518,32 +529,6 @@ export default function Shortcuts() {
 
   function startDrag(i: number) { dragIndexRef.current = i; setDragIndex(i); }
   function endDrag() { dragIndexRef.current = null; setDragIndex(null); setOverIndex(null); }
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          setItems(JSON.parse(raw));
-        } else {
-          const legacy = localStorage.getItem(LEGACY_KEY);
-          if (legacy) {
-            const arr = JSON.parse(legacy) as { name: string; url: string; chip: string }[];
-            setItems(arr.map((s) => ({ kind: "link", name: s.name, url: s.url, chip: s.chip })));
-          }
-        }
-      } catch {
-        setItems(seedItems());
-      }
-      setLoaded(true);
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch { /* ignore */ }
-  }, [items, loaded]);
 
   /* -------- helpers -------- */
   function updateFolder(id: string, fn: (f: FolderItem) => FolderItem) {

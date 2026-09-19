@@ -1,7 +1,9 @@
 "use client";
 
-import { type DragEvent, useEffect, useMemo, useState } from "react";
+import { type DragEvent, useMemo, useState } from "react";
 import { IconCalendarWeek, IconChevronLeft, IconChevronRight, IconPlus, IconTrash } from "@tabler/icons-react";
+import { usePersistentState } from "@/lib/use-persistent-state";
+import { arrayOf, asString, isRecord, newId, oneOf } from "@/lib/validate";
 
 type AgendaItem = {
   id: string;
@@ -97,56 +99,50 @@ function kindColor(kind: AgendaItem["kind"]) {
   return KINDS.find((item) => item.id === kind)?.color ?? "var(--sky)";
 }
 
-function normalizeStoredItems(raw: string | null): AgendaItem[] | null {
-  if (!raw) return null;
-  const parsed = JSON.parse(raw) as Partial<AgendaItem>[];
+const KIND_IDS: readonly AgendaItem["kind"][] = ["trabajo", "personal", "pago"];
 
-  return parsed.map((item) => ({
-    id: item.id ?? crypto.randomUUID(),
-    date: item.date ?? todayIso(),
-    time: item.time ?? "10:00",
-    title: item.title ?? "Sin titulo",
-    kind: item.kind ?? "trabajo",
-    done: Boolean(item.done),
-  }));
+function parseAgendaItem(value: unknown): AgendaItem | null {
+  if (!isRecord(value)) return null;
+  const date = asString(value.date);
+  const time = asString(value.time);
+  return {
+    id: asString(value.id) || newId(),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayIso(),
+    time: /^\d{2}:\d{2}$/.test(time) ? time : "10:00",
+    title: asString(value.title) || "Sin titulo",
+    kind: oneOf(value.kind, KIND_IDS, "trabajo"),
+    done: Boolean(value.done),
+  };
+}
+
+function parseAgenda(value: unknown): AgendaItem[] | null {
+  return arrayOf(value, parseAgendaItem);
+}
+
+function readLegacyAgenda(): AgendaItem[] | null {
+  const raw = localStorage.getItem(LEGACY_KEY);
+  return raw ? parseAgenda(JSON.parse(raw)) : null;
+}
+
+function demoItems(): AgendaItem[] {
+  return [
+    { id: "start", date: todayIso(), time: "09:30", title: "Revisar proyectos activos", kind: "trabajo", done: false },
+    { id: "pay", date: todayIso(), time: "18:00", title: "Mirar pendientes y pagos", kind: "pago", done: false },
+  ];
 }
 
 export default function Agenda() {
-  const [items, setItems] = useState<AgendaItem[]>([
-    { id: "start", date: todayIso(), time: "09:30", title: "Revisar proyectos activos", kind: "trabajo", done: false },
-    { id: "pay", date: todayIso(), time: "18:00", title: "Mirar pendientes y pagos", kind: "pago", done: false },
-  ]);
-  const [loaded, setLoaded] = useState(false);
+  const [items, setItems] = usePersistentState<AgendaItem[]>(STORAGE_KEY, {
+    initial: demoItems,
+    parse: parseAgenda,
+    migrate: readLegacyAgenda,
+  });
   const [date, setDate] = useState(todayIso());
   const [time, setTime] = useState("10:00");
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<AgendaItem["kind"]>("trabajo");
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [activeDate, setActiveDate] = useState(todayIso());
-
-  useEffect(() => {
-    const loadAgenda = window.setTimeout(() => {
-      try {
-        const current = normalizeStoredItems(localStorage.getItem(STORAGE_KEY));
-        const legacy = normalizeStoredItems(localStorage.getItem(LEGACY_KEY));
-        if (current ?? legacy) setItems((current ?? legacy)!);
-      } catch {
-        /* keep defaults */
-      }
-      setLoaded(true);
-    }, 0);
-
-    return () => window.clearTimeout(loadAgenda);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      /* ignore */
-    }
-  }, [items, loaded]);
 
   function addItem() {
     const cleanTitle = title.trim();

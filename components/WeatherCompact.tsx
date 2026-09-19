@@ -1,17 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { IconCloud, IconCloudRain, IconSun } from "@tabler/icons-react";
+import { useWeather } from "@/lib/weather";
 
-const LOCATION = { name: "Buenos Aires", lat: -34.61, lon: -58.38 };
-
-type Weather = {
-  temp: number;
-  feels: number;
-  rain: number;
-  code: number;
-  hours: { time: string; temp: number; rain: number }[];
-};
+const hourFormat = new Intl.DateTimeFormat("es-AR", { hour: "2-digit" });
 
 function iconFor(code: number | null, size = 16) {
   const props = { size, stroke: 2.2, color: "var(--ink)" };
@@ -21,39 +13,17 @@ function iconFor(code: number | null, size = 16) {
 }
 
 export default function WeatherCompact() {
-  const [weather, setWeather] = useState<Weather | null>(null);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      const url =
-        `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-        "&current=temperature_2m,apparent_temperature,weather_code,precipitation_probability" +
-        "&hourly=temperature_2m,precipitation_probability&forecast_hours=6&timezone=auto";
-
-      fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-          const current = data?.current;
-          const hourly = data?.hourly;
-          if (!current) return;
-
-          setWeather({
-            temp: Math.round(current.temperature_2m),
-            feels: Math.round(current.apparent_temperature),
-            rain: Math.round(current.precipitation_probability ?? 0),
-            code: current.weather_code,
-            hours: (hourly?.time ?? []).slice(0, 4).map((time: string, index: number) => ({
-              time: new Intl.DateTimeFormat("es-AR", { hour: "2-digit" }).format(new Date(time)),
-              temp: Math.round(hourly.temperature_2m[index]),
-              rain: Math.round(hourly.precipitation_probability[index] ?? 0),
-            })),
-          });
-        })
-        .catch(() => {});
-    }, 0);
-
-    return () => window.clearTimeout(t);
-  }, []);
+  const { location, data } = useWeather();
+  // Con datos de cache puede haber horas que ya pasaron.
+  const hourStart = new Date();
+  hourStart.setMinutes(0, 0, 0);
+  const weather = data && {
+    ...data.current,
+    hours: data.hours
+      .filter((hour) => new Date(hour.time) >= hourStart)
+      .slice(0, 4)
+      .map((hour) => ({ ...hour, label: hourFormat.format(new Date(hour.time)) })),
+  };
 
   return (
     <section
@@ -70,7 +40,7 @@ export default function WeatherCompact() {
         <p className="text-[10px] uppercase" style={{ fontFamily: "var(--font-head)", letterSpacing: "0.04em" }}>
           Clima
         </p>
-        <span className="text-[9px]" style={{ color: "var(--muted)" }}>{LOCATION.name}</span>
+        <span className="text-[9px]" style={{ color: "var(--muted)" }}>{location.name}</span>
       </div>
 
       {weather ? (
@@ -95,7 +65,7 @@ export default function WeatherCompact() {
                 className="px-1 py-1 text-center"
                 style={{ border: "1.5px solid var(--ink)", borderRadius: "var(--radius)", background: "var(--paper)" }}
               >
-                <p className="text-[8px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>{hour.time}</p>
+                <p className="text-[8px] uppercase" style={{ fontFamily: "var(--font-head)", color: "var(--muted)" }}>{hour.label}</p>
                 <p className="text-[10px] tabular-nums" style={{ fontFamily: "var(--font-head)" }}>{hour.temp}°</p>
                 <p className="text-[8px] tabular-nums" style={{ color: "var(--muted)" }}>{hour.rain}%</p>
               </div>

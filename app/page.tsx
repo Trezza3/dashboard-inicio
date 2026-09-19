@@ -6,6 +6,8 @@ import News from "@/components/News";
 import Agenda from "@/components/Agenda";
 import Projects from "@/components/Projects";
 import Sessions from "@/components/Sessions";
+import TabGroups from "@/components/TabGroups";
+import DuplicateTabs from "@/components/DuplicateTabs";
 import WeatherCompact from "@/components/WeatherCompact";
 import Dolar from "@/components/widgets/Dolar";
 
@@ -63,6 +65,7 @@ export default function Home() {
           {/* Derecha sticky */}
           <aside
             className="col-right order-3 flex flex-col gap-[14px] md:sticky md:top-[90px] md:self-start"
+            aria-label="Pestañas, proyectos y noticias"
           >
             <div className="flex gap-[14px]">
               <div className="min-w-0 flex-1">
@@ -72,6 +75,8 @@ export default function Home() {
                 <Sessions />
               </div>
             </div>
+            <DuplicateTabs />
+            <TabGroups />
             <News />
           </aside>
         </div>

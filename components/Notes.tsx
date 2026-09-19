@@ -2,6 +2,8 @@
 
 import { type DragEvent, useEffect, useState } from "react";
 import { IconCheck, IconPencil, IconPin, IconTrash } from "@tabler/icons-react";
+import { usePersistentState } from "@/lib/use-persistent-state";
+import { arrayOf, asString, isRecord, newId, oneOf } from "@/lib/validate";
 
 type Priority = "normal" | "alta";
 type Note = {
@@ -21,13 +23,22 @@ type PostItBoardProps = {
 };
 
 const NOTE_MIME = "application/x-dashboard-note";
+const PRIORITIES: readonly Priority[] = ["normal", "alta"];
 
-function normalizeNote(note: Note): Note {
+function parseNote(value: unknown): Note | null {
+  if (!isRecord(value) || typeof value.text !== "string") return null;
   return {
-    ...note,
-    priority: note.priority ?? "normal",
-    pinned: Boolean(note.pinned),
+    id: asString(value.id) || newId(),
+    text: value.text,
+    done: Boolean(value.done),
+    urgent: Boolean(value.urgent) || undefined,
+    priority: oneOf(value.priority, PRIORITIES, "normal"),
+    pinned: Boolean(value.pinned),
   };
+}
+
+function parseNotes(value: unknown): Note[] | null {
+  return arrayOf(value, parseNote);
 }
 
 function sortedNotes(notes: Note[]) {
@@ -39,28 +50,24 @@ function sortedNotes(notes: Note[]) {
 }
 
 function PostItBoard({ storageKey, defaultTitle, defaultColor, rotation }: PostItBoardProps) {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = usePersistentState<Note[]>(storageKey, { initial: [], parse: parseNotes });
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [paperTitle, setPaperTitle] = useState(defaultTitle);
   const [paperColor, setPaperColor] = useState(defaultColor);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const loadNotes = window.setTimeout(() => {
+    const t = window.setTimeout(() => {
       try {
-        const raw = localStorage.getItem(storageKey);
-        if (raw) setNotes(JSON.parse(raw).map(normalizeNote));
         setPaperTitle(localStorage.getItem(`${storageKey}-title`) ?? defaultTitle);
         setPaperColor(localStorage.getItem(`${storageKey}-color`) ?? defaultColor);
       } catch {
         /* ignore */
       }
-      setLoaded(true);
     }, 0);
 
-    return () => window.clearTimeout(loadNotes);
+    return () => window.clearTimeout(t);
   }, [defaultColor, defaultTitle, storageKey]);
 
   useEffect(() => {
@@ -78,15 +85,6 @@ function PostItBoard({ storageKey, defaultTitle, defaultColor, rotation }: PostI
   }, [defaultColor, defaultTitle, storageKey]);
 
   useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(notes));
-    } catch {
-      /* ignore */
-    }
-  }, [notes, loaded, storageKey]);
-
-  useEffect(() => {
     function onScheduled(event: Event) {
       const detail = (event as CustomEvent<{ storageKey: string; noteId: string }>).detail;
       if (detail?.storageKey !== storageKey) return;
@@ -97,7 +95,7 @@ function PostItBoard({ storageKey, defaultTitle, defaultColor, rotation }: PostI
 
     window.addEventListener("dashboard-note-scheduled", onScheduled);
     return () => window.removeEventListener("dashboard-note-scheduled", onScheduled);
-  }, [storageKey]);
+  }, [setNotes, storageKey]);
 
   function addNote() {
     const text = draft.trim();

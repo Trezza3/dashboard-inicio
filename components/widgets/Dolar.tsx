@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 
 type Rate = { casa: string; venta: number; fechaActualizacion?: string };
 
@@ -14,17 +15,23 @@ export default function Dolar() {
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // Cotización al abrir y cada 30 min mientras la pestaña está visible.
+  const load = useCallback(() => {
     fetch("https://dolarapi.com/v1/dolares")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`dolar-http-${r.status}`);
+        return r.json();
+      })
       .then((data: Rate[]) => {
-        const filtered = data.filter((d) => ["blue", "oficial", "mep"].includes(d.casa));
+        if (!Array.isArray(data)) return;
+        const filtered = data.filter((d) => d.casa === "blue" || ITEMS.some((item) => item.casa === d.casa));
         setRates(filtered);
         setUpdatedAt(filtered.find((d) => d.fechaActualizacion)?.fechaActualizacion ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+  useVisibleInterval(load, 30 * 60 * 1000);
 
   const rateMap = Object.fromEntries(rates.map((r) => [r.casa, r.venta]));
   const updatedTime = updatedAt

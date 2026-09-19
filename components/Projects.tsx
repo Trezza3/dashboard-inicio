@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { IconExternalLink, IconPencil, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import {
   ACCENT_OPTIONS,
   DEFAULT_PROJECTS,
   STATUS_META,
+  parseProjects,
   type Project,
   type ProjectLink,
   type ProjectStatus,
 } from "@/lib/projects";
+import { usePersistentState } from "@/lib/use-persistent-state";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 
 type PingResult = { url: string; ok: boolean; code: number; ms: number };
 
@@ -35,70 +38,43 @@ function emptyDraft(): Project {
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const [projects, setProjects, loaded] = usePersistentState<Project[]>(STORAGE_KEY, {
+    initial: DEFAULT_PROJECTS,
+    parse: parseProjects,
+  });
   const [pings, setPings] = useState<Record<string, PingResult>>({});
   const [editingId, setEditingId] = useState<string | null>(null); // null=cerrado, "new"=alta, id=edicion
   const [draft, setDraft] = useState<Project>(emptyDraft);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        setProjects(raw ? (JSON.parse(raw) as Project[]) : DEFAULT_PROJECTS);
-      } catch {
-        setProjects(DEFAULT_PROJECTS);
-      }
-      setLoaded(true);
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-    } catch {
-      /* ignore */
-    }
-  }, [projects, loaded]);
-
   const monitorKey = useMemo(
-    () => projects.map((p) => p.monitorUrl).filter(Boolean).join("|"),
+    () => [...new Set(projects.map((p) => p.monitorUrl).filter(Boolean))].join("|"),
     [projects],
   );
 
-  // Estado en vivo: pinguea las URLs monitoreadas al cargar y cada 60s.
-  useEffect(() => {
-    if (!loaded) return;
+  // Estado en vivo: pinguea las URLs monitoreadas al cargar y cada 60s,
+  // solo mientras la pestaña está visible.
+  const checkAll = useCallback(async () => {
     const urls = monitorKey.split("|").filter(Boolean);
     if (!urls.length) return;
-    let alive = true;
-    async function checkAll() {
-      try {
-        const res = await fetch("/api/status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ urls }),
-        });
-        const data = (await res.json()) as { results?: PingResult[] };
-        if (!alive) return;
-        setPings((prev) => {
-          const next = { ...prev };
-          for (const r of data.results ?? []) next[r.url] = r;
-          return next;
-        });
-      } catch {
-        /* red caida */
-      }
+    try {
+      const res = await fetch("/api/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { results?: PingResult[] };
+      setPings((prev) => {
+        const next = { ...prev };
+        for (const r of data.results ?? []) next[r.url] = r;
+        return next;
+      });
+    } catch {
+      /* red caida */
     }
-    void checkAll();
-    const id = window.setInterval(checkAll, 60000);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
-  }, [monitorKey, loaded]);
+  }, [monitorKey]);
+  // Al cambiar las URLs monitoreadas se reinicia y chequea enseguida.
+  useVisibleInterval(checkAll, 60_000, loaded && monitorKey !== "");
 
   const openAdd = useCallback(() => {
     setDraft(emptyDraft());

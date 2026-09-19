@@ -1,3 +1,5 @@
+import { arrayOf, asString, isHttpUrl, isRecord, newId } from "@/lib/validate";
+
 export type ShortcutCategory = "Trabajo" | "Proyectos" | "IA" | "Admin" | "Ocio";
 
 export type Shortcut = {
@@ -27,3 +29,26 @@ export type Link = { name: string; url: string; chip: string };
 export type LinkItem = { kind: "link" } & Link;
 export type FolderItem = { kind: "folder"; id: string; name: string; items: Link[] };
 export type GridItem = LinkItem | FolderItem;
+
+function parseLink(value: unknown): Link | null {
+  if (!isRecord(value) || !isHttpUrl(value.url)) return null;
+  return { name: asString(value.name) || value.url, url: value.url, chip: asString(value.chip, "var(--ink)") };
+}
+
+function parseGridItem(value: unknown): GridItem | null {
+  if (!isRecord(value)) return null;
+  if (value.kind === "folder") {
+    return {
+      kind: "folder",
+      id: asString(value.id) || newId(),
+      name: asString(value.name) || "Carpeta",
+      items: arrayOf(value.items, parseLink) ?? [],
+    };
+  }
+  const link = parseLink(value);
+  return link ? { kind: "link", ...link } : null;
+}
+
+export function parseGridItems(value: unknown): GridItem[] | null {
+  return arrayOf(value, parseGridItem);
+}
