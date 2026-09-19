@@ -15,14 +15,20 @@ su configuración de forma independiente:
 - notas y agenda;
 - proyectos y URLs monitoreadas;
 - fuentes de noticias, tema y preferencias visuales;
-- ciudad del clima (Configuración → Clima) y grupos de pestañas guardados.
+- ciudad del clima (Configuración → Clima) y espacios de trabajo.
+
+**Ctrl+K** (o el botón ⌘K del encabezado) abre un buscador de pestañas
+abiertas, espacios, accesos, proyectos e historial. Los **espacios** agrupan
+las pestañas y notas de cada cliente o proyecto y se abren/guardan/cierran como
+grupo del navegador (necesitan la extensión).
 
 Si hay varias pestañas del dashboard abiertas, los cambios hechos en una se
 reflejan en las demás al instante (no se pisan entre sí).
 
 La página se guarda en el navegador con un service worker: después de la
 primera visita, la pestaña nueva abre desde el cache local sin esperar la red y
-la versión nueva de un deploy se ve en la apertura siguiente.
+la versión nueva de un deploy se ve en la apertura siguiente (las pestañas del
+dashboard que quedaron en segundo plano se recargan solas).
 
 Los datos quedan en `localStorage`. No hay sincronización entre dispositivos ni
 recuperación si se borran los datos del sitio.

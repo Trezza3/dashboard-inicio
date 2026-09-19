@@ -9,8 +9,10 @@ import {
   IconBolt,
   IconMoon,
   IconHeartFilled,
+  IconCommand,
 } from "@tabler/icons-react";
 import DashboardSettings from "@/components/DashboardSettings";
+import { OPEN_PALETTE_EVENT } from "@/components/CommandPalette";
 import { useWeather } from "@/lib/weather";
 
 function WeatherIcon({ code, size = 18 }: { code: number | null; size?: number }) {
@@ -232,6 +234,25 @@ export default function Header() {
             ? <IconSun size={18} stroke={2} color="var(--gold)" />
             : <IconMoon size={18} stroke={2} color="var(--ink)" />
           }
+        </button>
+
+        {/* Buscador universal (también con Ctrl+K) */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_PALETTE_EVENT))}
+          aria-label="Abrir el buscador (Ctrl+K)"
+          title="Buscar pestañas, espacios y accesos (Ctrl+K)"
+          className="tile flex items-center justify-center gap-1.5 px-3"
+          style={{
+            height: 42,
+            background: "var(--surface)",
+            border: "2px solid var(--ink)",
+            borderRadius: "var(--radius)",
+            boxShadow: "var(--sh-sm)",
+          }}
+        >
+          <IconCommand size={16} stroke={2.3} color="var(--ink)" />
+          <span className="text-[11px]" style={{ fontFamily: "var(--font-head)" }}>K</span>
         </button>
 
         <DashboardSettings />

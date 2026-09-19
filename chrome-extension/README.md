@@ -24,18 +24,21 @@ reabrirlas restaurando la sesion tal cual, con su historial.
   `chrome.sessions.restore()` (permisos `tabs` y `sessions`).
 - `content.js`: puente entre la pagina del dashboard y el background.
 
-## Grupos de pestanas y duplicadas (version 1.1)
+## Espacios, buscador y duplicadas (version 1.2)
 
-- **Grupos de pestanas:** el boton de guardar del panel "Grupos de pestañas"
-  guarda las pestanas de la ventana actual (se pueden destildar algunas) con
-  nombre y color. "Abrir" las abre todas juntas en una ventana nueva, agrupadas
-  como grupo nativo del navegador con ese nombre y color.
+- **Espacios:** uno por cliente o proyecto, con sus pestanas y notas. "Abrir"
+  las abre en una ventana nueva como grupo nativo con ese nombre y color; si el
+  grupo ya esta abierto, lleva a el. "Guardar" toma las pestanas actuales del
+  grupo y "Guardar y cerrar" ademas lo cierra.
+- **Buscador (Ctrl+K):** busca en pestanas abiertas (y salta a la que ya
+  tenes), espacios, accesos, proyectos e historial.
 - **Duplicadas:** si hay pestanas abiertas con la misma URL (en cualquier
   ventana), aparece un panel para cerrarlas con un click. Se conserva la fijada,
   la activa o la usada mas recientemente; las fijadas nunca se cierran.
 
-Metodos nuevos en `background.js` (via RPC desde `lib/extension-bridge.ts`):
-`getCurrentWindowTabs`, `openTabGroup`, `findDuplicateTabs`, `closeTabs`.
+Metodos RPC de `background.js` (llamados desde `lib/extension-bridge.ts`):
+`getCurrentWindowTabs`, `openTabGroup`, `getGroupTabs`, `closeGroup`,
+`listTabs`, `focusTab`, `searchHistory`, `findDuplicateTabs`, `closeTabs`.
 
 ## Seguridad
 

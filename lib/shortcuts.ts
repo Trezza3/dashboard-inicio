@@ -52,3 +52,17 @@ function parseGridItem(value: unknown): GridItem | null {
 export function parseGridItems(value: unknown): GridItem[] | null {
   return arrayOf(value, parseGridItem);
 }
+
+export const SHORTCUTS_KEY = "dash-shortcuts-v3";
+const LEGACY_SHORTCUTS_KEY = "dash-shortcuts-v2";
+
+/** Accesos iniciales (mientras el usuario no guardó los suyos). */
+export function seedItems(): GridItem[] {
+  return shortcuts.map((s) => ({ kind: "link", name: s.name, url: s.url, chip: s.chip }));
+}
+
+/** Accesos guardados con el formato de la v2 (lista plana de links). */
+export function readLegacyShortcuts(): GridItem[] | null {
+  const raw = localStorage.getItem(LEGACY_SHORTCUTS_KEY);
+  return raw ? parseGridItems(JSON.parse(raw)) : null;
+}

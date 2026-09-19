@@ -40,7 +40,11 @@ export function usePersistentState<T>(
 ): [T, Dispatch<SetStateAction<T>>, boolean] {
   const [value, setValue] = useState<T>(() => resolveInitial(initial));
   const [loaded, setLoaded] = useState(false);
-  // Último texto leído o escrito: evita reescribir lo que ya está guardado.
+  // Versión serializada del valor que vino de afuera (carga u otra pestaña).
+  // Solo se escribe cuando el valor cambia respecto de esto, es decir, por un
+  // cambio hecho acá. Leer nunca escribe: si no, una pestaña con código viejo
+  // (p. ej. abierta antes de un deploy) reescribiría los datos a su formato y
+  // podría borrar lo que guardó una pestaña más nueva.
   const lastRaw = useRef<string | null>(null);
   const instance = useRef(Symbol(key));
   const parseRef = useRef(parse);
@@ -65,8 +69,6 @@ export function usePersistentState<T>(
       let next: T | null = null;
       if (raw !== null) {
         next = parseRaw(raw, parseRef.current);
-        // Dato ilegible: no se sobreescribe hasta que el usuario cambie algo.
-        lastRaw.current = raw;
       } else {
         try {
           next = migrateRef.current?.() ?? null;
@@ -76,7 +78,7 @@ export function usePersistentState<T>(
       }
 
       const resolved = next ?? resolveInitial(initialRef.current);
-      if (raw !== null && next === null) lastRaw.current = JSON.stringify(resolved);
+      lastRaw.current = JSON.stringify(resolved);
       setValue(resolved);
       setLoaded(true);
     }, 0);
@@ -100,10 +102,12 @@ export function usePersistentState<T>(
 
   useEffect(() => {
     function apply(raw: string | null) {
-      if (raw === null || raw === lastRaw.current) return;
+      if (raw === null) return;
       const next = parseRaw(raw, parseRef.current);
       if (next === null) return;
-      lastRaw.current = raw;
+      const normalized = JSON.stringify(next);
+      if (normalized === lastRaw.current) return;
+      lastRaw.current = normalized;
       setValue(next);
     }
 

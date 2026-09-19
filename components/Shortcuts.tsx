@@ -14,7 +14,9 @@ import {
   IconSearch,
 } from "@tabler/icons-react";
 import {
-  shortcuts as defaultShortcuts,
+  SHORTCUTS_KEY as STORAGE_KEY,
+  readLegacyShortcuts,
+  seedItems,
   type Link,
   type GridItem,
   type FolderItem,
@@ -32,8 +34,6 @@ const CHIP_OPTIONS = [
   { label: "gold",   value: "var(--gold)"   },
 ];
 
-const STORAGE_KEY = "dash-shortcuts-v3";
-const LEGACY_KEY = "dash-shortcuts-v2";
 
 function genId() {
   return typeof crypto !== "undefined" && crypto.randomUUID
@@ -41,15 +41,6 @@ function genId() {
     : `f-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function seedItems(): GridItem[] {
-  return defaultShortcuts.map((s) => ({ kind: "link", name: s.name, url: s.url, chip: s.chip }));
-}
-
-// Accesos guardados con el formato de la v2 (lista plana de links).
-function readLegacyShortcuts(): GridItem[] | null {
-  const raw = localStorage.getItem(LEGACY_KEY);
-  return raw ? parseGridItems(JSON.parse(raw)) : null;
-}
 
 function faviconUrl(url: string): string | null {
   try {

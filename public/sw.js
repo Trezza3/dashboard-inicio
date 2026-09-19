@@ -54,20 +54,41 @@ function cacheable(response) {
   return response && response.ok && response.type === "basic" && !response.redirected;
 }
 
+// Avisa a las pestañas abiertas que hay una versión nueva de la página, para
+// que las que están en segundo plano se recarguen y no quede código viejo.
+async function notifyUpdate() {
+  // La pestaña que recibió el HTML viejo todavía está cargando: se espera a
+  // que la app monte el listener (los mensajes anteriores se pierden).
+  await new Promise((resolve) => setTimeout(resolve, 4000));
+  const clients = await self.clients.matchAll({ type: "window" });
+  for (const client of clients) client.postMessage({ type: "dash-update" });
+}
+
 async function pageResponse(event) {
   const cache = await caches.open(PAGE_CACHE);
   // Una sola entrada por ruta: la query (?utm=...) no cambia el HTML.
   const url = new URL(event.request.url);
   const key = new Request(url.origin + url.pathname);
+  const cached = await cache.match(key);
+  // Copia para comparar: `cached` se devuelve y el navegador consume su cuerpo.
+  const previousCopy = cached ? cached.clone() : null;
 
   const network = fetch(event.request)
     .then(async (response) => {
-      if (cacheable(response)) await cache.put(key, response.clone());
+      if (!cacheable(response)) return response;
+      if (previousCopy) {
+        const [previous, next] = await Promise.all([previousCopy.text(), response.clone().text()]);
+        if (previous !== next) {
+          await cache.put(key, response.clone());
+          await notifyUpdate();
+        }
+      } else {
+        await cache.put(key, response.clone());
+      }
       return response;
     })
     .catch(() => null);
 
-  const cached = await cache.match(key);
   if (cached) {
     event.waitUntil(network);
     return cached;

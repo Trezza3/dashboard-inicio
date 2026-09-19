@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Dashboard Inicio",
-  "version": "1.1.0",
-  "description": "Reemplaza la nueva pestana por el dashboard: pestanas cerradas, grupos de pestanas, duplicadas e historial en el buscador.",
+  "version": "1.2.0",
+  "description": "Reemplaza la nueva pestana por el dashboard: pestanas cerradas, espacios de trabajo, duplicadas y buscador de pestanas e historial.",
   "permissions": ["tabs", "tabGroups", "sessions", "history"],
   "host_permissions": [
     "https://dashboard-inicio.vercel.app/*"

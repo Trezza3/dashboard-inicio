@@ -52,13 +52,26 @@ describe("parseGridItems", () => {
 });
 
 describe("parseTabGroups", () => {
-  it("descarta grupos sin links válidos y corrige el color", () => {
+  it("descarta espacios sin nombre, corrige el color y filtra links inválidos", () => {
     const result = parseTabGroups([
-      { id: "a", name: "Vacío", links: [] },
-      { id: "b", name: "Trabajo", color: "magenta", createdAt: 5, links: [{ url: "https://mail.google.com", title: "Mail" }] },
+      { id: "a", name: "  ", links: [] },
+      {
+        id: "b",
+        name: "Trabajo",
+        color: "magenta",
+        createdAt: 5,
+        note: "llamar",
+        links: [{ url: "https://mail.google.com", title: "Mail" }, { url: "chrome://settings" }],
+      },
     ]);
     expect(result).toEqual([
-      { id: "b", name: "Trabajo", color: "blue", createdAt: 5, links: [{ url: "https://mail.google.com", title: "Mail" }] },
+      { id: "b", name: "Trabajo", color: "blue", createdAt: 5, note: "llamar", links: [{ url: "https://mail.google.com", title: "Mail" }] },
+    ]);
+  });
+
+  it("acepta espacios vacíos (se crean antes de guardarles pestañas)", () => {
+    expect(parseTabGroups([{ id: "k", name: "Kalma", createdAt: 1 }])).toEqual([
+      { id: "k", name: "Kalma", color: "blue", createdAt: 1, links: [] },
     ]);
   });
 });

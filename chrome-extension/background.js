@@ -113,16 +113,45 @@ async function getCurrentWindowTabs(_params, sender) {
   };
 }
 
+function cleanTitle(value) {
+  return typeof value === "string" ? value.trim().slice(0, 60) : "";
+}
+
+// Grupo nativo abierto con ese nombre exacto (el filtro de la API usa patrones).
+async function findGroup(title) {
+  if (!title || !chrome.tabGroups) return null;
+  const groups = await chrome.tabGroups.query({});
+  return groups.find((group) => group.title === title) || null;
+}
+
+async function focusTabById(tabId) {
+  const tab = await chrome.tabs.update(tabId, { active: true });
+  await chrome.windows.update(tab.windowId, { focused: true });
+  return tab;
+}
+
 // Abre un grupo guardado en una ventana nueva y lo agrupa con su nombre.
 // Una sola llamada a windows.create: no la frena el bloqueador de popups.
+// Con `reuse`, si ya hay un grupo abierto con ese nombre, lleva a ese grupo.
 async function openTabGroup(params) {
+  const title = cleanTitle(params?.name);
+  if (params?.reuse) {
+    const existing = await findGroup(title);
+    if (existing) {
+      const [first] = await chrome.tabs.query({ groupId: existing.id });
+      if (first) {
+        await focusTabById(first.id);
+        return { ok: true, opened: 0, reused: true };
+      }
+    }
+  }
+
   const urls = (Array.isArray(params?.urls) ? params.urls : [])
     .filter((url) => typeof url === "string" && isHttpUrl(url))
     .slice(0, MAX_GROUP_TABS);
   if (!urls.length) return { ok: false, opened: 0 };
 
   const win = await chrome.windows.create({ url: urls, focused: true });
-  const title = typeof params?.name === "string" ? params.name.slice(0, 60) : "";
   const tabIds = (win.tabs || []).map((tab) => tab.id).filter((id) => typeof id === "number");
 
   if (title && tabIds.length && chrome.tabGroups) {
@@ -134,7 +163,63 @@ async function openTabGroup(params) {
       /* navegador sin grupos de pestanas: quedan sueltas en la ventana */
     }
   }
-  return { ok: true, opened: urls.length };
+  return { ok: true, opened: urls.length, reused: false };
+}
+
+// Pestanas del grupo nativo con ese nombre (para guardar el estado de un espacio).
+async function getGroupTabs(params) {
+  const group = await findGroup(cleanTitle(params?.name));
+  if (!group) return { found: false, tabs: [] };
+  const tabs = await chrome.tabs.query({ groupId: group.id });
+  return {
+    found: true,
+    tabs: tabs
+      .filter((tab) => isRealPage(tab.url || ""))
+      .map((tab) => ({ url: tab.url, title: tab.title || tab.url, pinned: Boolean(tab.pinned) })),
+  };
+}
+
+// Cierra las pestanas del grupo con ese nombre (nunca la del dashboard).
+async function closeGroup(params, sender) {
+  const group = await findGroup(cleanTitle(params?.name));
+  if (!group) return { closed: 0 };
+  const tabs = await chrome.tabs.query({ groupId: group.id });
+  const ids = tabs.map((tab) => tab.id).filter((id) => typeof id === "number" && id !== sender.tab?.id);
+  if (ids.length) await chrome.tabs.remove(ids);
+  return { closed: ids.length };
+}
+
+// Todas las pestanas abiertas, para el buscador (Ctrl+K).
+async function listTabs() {
+  const [tabs, groups] = await Promise.all([
+    chrome.tabs.query({}),
+    chrome.tabGroups ? chrome.tabGroups.query({}) : Promise.resolve([]),
+  ]);
+  const groupTitles = new Map(groups.map((group) => [group.id, group.title || ""]));
+  return {
+    tabs: tabs
+      .filter((tab) => typeof tab.id === "number" && isRealPage(tab.url || ""))
+      .map((tab) => ({
+        id: tab.id,
+        windowId: tab.windowId,
+        url: tab.url,
+        title: tab.title || tab.url,
+        active: Boolean(tab.active),
+        group: groupTitles.get(tab.groupId) || "",
+        lastAccessed: tab.lastAccessed || 0,
+      })),
+  };
+}
+
+// Lleva a una pestana ya abierta. Con `closeSender` cierra la pestana del
+// dashboard (una pestana nueva que ya no hace falta).
+async function focusTab(params, sender) {
+  if (!Number.isInteger(params?.tabId)) return { ok: false };
+  await focusTabById(params.tabId);
+  if (params.closeSender && typeof sender.tab?.id === "number" && sender.tab.id !== params.tabId) {
+    await chrome.tabs.remove(sender.tab.id);
+  }
+  return { ok: true };
 }
 
 // Pestanas abiertas con la misma URL, en todas las ventanas.
@@ -193,6 +278,11 @@ const RPC_METHODS = {
   ping: async () => ({ version: chrome.runtime.getManifest().version }),
   getCurrentWindowTabs,
   openTabGroup,
+  getGroupTabs,
+  closeGroup,
+  listTabs,
+  focusTab,
+  searchHistory: async (params) => ({ results: await searchHistory(params?.query) }),
   findDuplicateTabs,
   closeTabs,
 };
